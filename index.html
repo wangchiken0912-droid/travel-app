@@ -4,9 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>大阪・京都行程</title>
+  <!-- UI version: timeline + white iOS layout -->
   <style>
     :root {
-      --bg: #f6f7f8;
+      --bg: #ffffff;
       --card: #ffffff;
       --card-soft: #f9fafb;
       --text: #111827;
@@ -66,9 +67,7 @@
       min-height: 100dvh;
       margin: 0 auto;
       padding: 0 0 calc(78px + var(--safe-bottom));
-      background:
-        radial-gradient(circle at top right, rgba(47, 128, 168, 0.08), transparent 34%),
-        var(--bg);
+      background: var(--bg);
     }
 
     .page {
@@ -81,7 +80,7 @@
       z-index: 30;
       padding: 16px 18px 10px;
       border-bottom: 1px solid rgba(229, 231, 235, 0.7);
-      background: rgba(246, 247, 248, 0.92);
+      background: rgba(255, 255, 255, 0.96);
       backdrop-filter: blur(18px);
     }
 
@@ -372,7 +371,7 @@
       margin: 0 -18px 12px;
       padding: 8px 18px 10px;
       border-bottom: 1px solid rgba(229, 231, 235, 0.7);
-      background: rgba(246, 247, 248, 0.92);
+      background: rgba(255, 255, 255, 0.96);
       backdrop-filter: blur(18px);
       scrollbar-width: none;
     }
@@ -404,6 +403,284 @@
     .stop-list {
       display: grid;
       gap: 12px;
+    }
+
+    .today-list {
+      display: grid;
+      gap: 0;
+      background: #fff;
+      border-top: 1px solid var(--line-soft);
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .today-item {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 0;
+      background: #fff;
+    }
+
+    .today-item:not(:last-child) {
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .today-item .thumb {
+      flex: 0 0 64px;
+      width: 64px;
+      height: 64px;
+      border-radius: 14px;
+      box-shadow: none;
+    }
+
+    .today-item .thumb-placeholder svg {
+      width: 30px;
+      height: 30px;
+    }
+
+    .today-item .thumb-time {
+      top: 5px;
+      left: 5px;
+      padding: 3px 5px;
+      font-size: 8.5px;
+      background: rgba(17, 24, 39, 0.56);
+    }
+
+    .today-item .thumb-icon {
+      right: 5px;
+      bottom: 5px;
+      width: 22px;
+      height: 22px;
+      font-size: 9.5px;
+      box-shadow: none;
+    }
+
+    .today-body {
+      min-width: 0;
+      flex: 1;
+      padding-right: 4px;
+    }
+
+    .today-title {
+      margin: 0;
+      display: -webkit-box;
+      overflow: hidden;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 900;
+      line-height: 1.28;
+      letter-spacing: -0.01em;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .today-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 5px;
+      color: var(--light);
+      font-size: 11px;
+      font-weight: 850;
+      line-height: 1.2;
+    }
+
+    .today-meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .today-address {
+      display: -webkit-box;
+      overflow: hidden;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11.5px;
+      font-weight: 650;
+      line-height: 1.45;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+    }
+
+    .today-alert {
+      display: -webkit-box;
+      overflow: hidden;
+      margin-top: 6px;
+      color: #92400e;
+      font-size: 10.5px;
+      font-weight: 800;
+      line-height: 1.35;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+    }
+
+    .timeline-list {
+      display: grid;
+      gap: 0;
+      margin-top: 2px;
+      background: #fff;
+    }
+
+    .timeline-item {
+      position: relative;
+      display: grid;
+      grid-template-columns: 50px 24px 1fr;
+      gap: 9px;
+      align-items: start;
+      min-height: 72px;
+    }
+
+    .timeline-item:not(:last-child) {
+      padding-bottom: 10px;
+    }
+
+    .timeline-time {
+      padding-top: 4px;
+      text-align: right;
+    }
+
+    .timeline-time strong {
+      display: block;
+      color: var(--text);
+      font-size: 11.5px;
+      font-weight: 950;
+      letter-spacing: -0.01em;
+      line-height: 1.1;
+    }
+
+    .timeline-time span {
+      display: block;
+      margin-top: 3px;
+      color: var(--light);
+      font-size: 9px;
+      font-weight: 850;
+      line-height: 1.15;
+    }
+
+    .timeline-node {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      margin-top: 3px;
+      border: 2px solid #dbeef5;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--primary);
+      font-size: 8.8px;
+      font-weight: 950;
+      box-shadow: 0 0 0 4px #fff;
+      z-index: 2;
+    }
+
+    .timeline-item:not(:last-child) .timeline-node::after {
+      content: "";
+      position: absolute;
+      top: 22px;
+      left: 50%;
+      width: 1px;
+      height: calc(100% + 52px);
+      transform: translateX(-50%);
+      background: #d9edf4;
+      z-index: -1;
+    }
+
+    .timeline-card {
+      display: block;
+      overflow: visible;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      padding: 2px 0 10px;
+      box-shadow: none;
+    }
+
+    .timeline-content {
+      min-width: 0;
+      border-bottom: 1px solid var(--line-soft);
+      padding-bottom: 12px;
+    }
+
+    .timeline-item:last-child .timeline-content {
+      border-bottom: 0;
+    }
+
+    .timeline-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 5px;
+      color: var(--light);
+      font-size: 10.5px;
+      font-weight: 850;
+      line-height: 1.25;
+    }
+
+    .timeline-meta span {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .timeline-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: -0.01em;
+      line-height: 1.32;
+    }
+
+    .timeline-address {
+      display: -webkit-box;
+      overflow: hidden;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11.5px;
+      font-weight: 650;
+      line-height: 1.45;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+    }
+
+    .timeline-note {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11.5px;
+      font-weight: 650;
+      line-height: 1.5;
+    }
+
+    .timeline-note.warning {
+      color: #92400e;
+      font-weight: 800;
+    }
+
+    .timeline-actions {
+      display: none;
+    }
+
+    .timeline-thumb {
+      position: relative;
+      width: 70px;
+      height: 70px;
+      overflow: hidden;
+      border-radius: 15px;
+      background: #eef2f6;
+      align-self: start;
+    }
+
+    .timeline-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .timeline-thumb .thumb-placeholder svg {
+      width: 34px;
+      height: 34px;
     }
 
     .stop-card {
@@ -737,40 +1014,68 @@
 
     .map-frame {
       width: 100%;
-      height: 330px;
+      height: 360px;
       border: 0;
       display: block;
       background: #e5e7eb;
     }
 
+    .map-head {
+      border-top: 1px solid var(--line-soft);
+      background: #fff;
+    }
+
     .map-stop-row {
-      display: flex;
+      display: grid;
       gap: 8px;
-      overflow-x: auto;
-      padding: 12px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding: 0 12px 12px;
       scrollbar-width: none;
     }
 
+    .map-stop-row::-webkit-scrollbar {
+      display: none;
+    }
+
     .map-stop {
-      flex: 0 0 auto;
-      max-width: 170px;
+      width: 100%;
       border: 1px solid var(--line);
-      border-radius: 14px;
+      border-radius: 15px;
       background: #fff;
       color: var(--muted);
-      padding: 9px 11px;
+      padding: 10px 11px;
       text-align: left;
       font-size: 12px;
       font-weight: 900;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      line-height: 1.35;
+      transition: transform 0.16s ease, border 0.16s ease, background 0.16s ease, color 0.16s ease;
     }
 
     .map-stop.active {
-      border-color: var(--primary);
-      background: var(--primary);
-      color: #fff;
+      border-color: rgba(47, 128, 168, 0.25);
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      box-shadow: inset 3px 0 0 var(--primary);
+    }
+
+    .map-stop-time {
+      display: block;
+      color: var(--primary);
+      font-size: 10px;
+      font-weight: 950;
+      line-height: 1.15;
+    }
+
+    .map-stop-title {
+      display: block;
+      margin-top: 3px;
+      color: currentColor;
+      font-size: 12.5px;
+      font-weight: 950;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .info-title {
@@ -845,7 +1150,7 @@
       inset: auto 0 0;
       z-index: 100;
       border-top: 1px solid rgba(229, 231, 235, 0.76);
-      background: rgba(255, 255, 255, 0.88);
+      background: #ffffff;
       backdrop-filter: blur(22px);
       -webkit-backdrop-filter: blur(22px);
       padding: 6px 10px calc(6px + var(--safe-bottom));
@@ -924,7 +1229,7 @@
 
     @media (min-width: 760px) {
       body {
-        background: #eef1f4;
+        background: #ffffff;
       }
 
       .app {
@@ -933,11 +1238,11 @@
         border: 1px solid var(--line);
         border-radius: 34px;
         overflow: hidden;
-        box-shadow: 0 24px 80px rgba(15, 23, 42, 0.12);
+        box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
       }
 
       .bottom-nav {
-        background: transparent;
+        background: #ffffff;
         border-top: 0;
         pointer-events: none;
       }
@@ -946,7 +1251,7 @@
         pointer-events: auto;
         border: 1px solid var(--line);
         border-radius: 22px;
-        background: rgba(255, 255, 255, 0.96);
+        background: #ffffff;
         padding: 4px;
         box-shadow: var(--shadow);
       }
@@ -1157,7 +1462,7 @@
 
     function getInitialRows() {
       try {
-        const cached = localStorage.getItem("trip-html:lastRows");
+        const cached = localStorage.getItem("trip-html:google-sheet-live-v1");
         if (cached) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length) return parsed.map(normalizeRow);
@@ -1399,7 +1704,77 @@
       `;
     }
 
-    function stopListHtml(stops) {
+    function timelineThumbnailHtml(stop) {
+      const fallback = placeholderHtml(stop.category, Boolean(stop.imageUrl));
+      const img = stop.imageUrl
+        ? `<img src="${attr(stop.imageUrl)}" alt="${attr(stop.title)}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');" />${fallback}`
+        : fallback;
+
+      return `<div class="timeline-thumb">${img}</div>`;
+    }
+
+    function timelineStopHtml(stop) {
+      const time = stop.time || "--:--";
+      const endTime = stop.endTime || "";
+      const category = stop.category || "景點";
+      const categoryClass = badgeClass(category);
+      const duration = stop.duration ? `<span>${escapeHtml(stop.duration)}</span>` : "";
+      const status = stop.status ? `<span>${escapeHtml(stop.status)}</span>` : "";
+      const address = stop.address ? `<div class="timeline-address">${escapeHtml(stop.address)}</div>` : "";
+      const transit = stop.transitNote ? `<div class="timeline-note">${escapeHtml(stop.transitNote)}</div>` : "";
+      const notice = stop.notice ? `<div class="timeline-note warning">${escapeHtml(stop.notice)}</div>` : "";
+
+      return `
+        <article class="timeline-item">
+          <div class="timeline-time">
+            <strong>${escapeHtml(time)}</strong>
+            ${endTime ? `<span>${escapeHtml(endTime)}</span>` : ""}
+          </div>
+          <div class="timeline-node ${categoryClass}">${escapeHtml(categoryIcon(category))}</div>
+          <div class="timeline-card">
+            <div class="timeline-content">
+              <div class="timeline-meta">
+                <span>${escapeHtml(category)}</span>
+                ${duration}
+                ${status}
+              </div>
+              <h3 class="timeline-title">${escapeHtml(stop.title)}</h3>
+              ${address}
+              ${transit}
+              ${notice}
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function todayListItemHtml(stop) {
+      const time = `${stop.time || "--:--"}${stop.endTime ? ` – ${stop.endTime}` : ""}`;
+      const category = stop.category || "景點";
+      const duration = stop.duration ? `<span>${escapeHtml(stop.duration)}</span>` : "";
+      const status = stop.status ? `<span>${escapeHtml(stop.status)}</span>` : "";
+      const address = stop.address ? `<div class="today-address">${escapeHtml(stop.address)}</div>` : "";
+      const notice = stop.notice ? `<div class="today-alert">${escapeHtml(stop.notice)}</div>` : "";
+
+      return `
+        <article class="today-item">
+          ${thumbnailHtml(stop)}
+          <div class="today-body">
+            <h3 class="today-title">${escapeHtml(stop.title)}</h3>
+            <div class="today-meta">
+              <span>${escapeHtml(time)}</span>
+              <span>${escapeHtml(category)}</span>
+              ${duration}
+              ${status}
+            </div>
+            ${address}
+            ${notice}
+          </div>
+        </article>
+      `;
+    }
+
+    function stopListHtml(stops, variant = "timeline") {
       if (!stops.length) {
         return `
           <section class="section">
@@ -1411,9 +1786,25 @@
         `;
       }
 
+      if (variant === "today") {
+        return `
+          <section class="today-list">
+            ${stops.map(todayListItemHtml).join("")}
+          </section>
+        `;
+      }
+
+      if (variant === "cards") {
+        return `
+          <section class="stop-list">
+            ${stops.map(stopCardHtml).join("")}
+          </section>
+        `;
+      }
+
       return `
-        <section class="stop-list">
-          ${stops.map(stopCardHtml).join("")}
+        <section class="timeline-list">
+          ${stops.map(timelineStopHtml).join("")}
         </section>
       `;
     }
@@ -1516,10 +1907,10 @@
           ${dailyNotice ? `<section class="section notice">${escapeHtml(dailyNotice)}</section>` : ""}
 
           <div class="section-title">
-            <h2>今日行程</h2>
+            <h2>今日清單</h2>
             <span>${escapeHtml(formatDateLabel(state.selectedDate))}</span>
           </div>
-          ${stopListHtml(dayStops)}
+          ${stopListHtml(dayStops, "today")}
         </div>
       `;
     }
@@ -1554,15 +1945,16 @@
           ${dateRailHtml()}
           ${messageHtml()}
           <section class="section map-card">
+            ${mapStop ? `<iframe class="map-frame" title="Google Maps Preview" loading="lazy" src="${attr(buildEmbedMapUrl(mapStop))}"></iframe>` : `<div class="loading-overlay">這天還沒有可顯示的地點</div>`}
             <div class="map-head">
               <div class="map-title">今日地圖</div>
-              <p class="map-copy">點下方地點切換地圖，實際路線跟乘車時間以 Google Maps 即時計算為準</p>
+              <p class="map-copy">點下方行程切換地圖，實際路線跟乘車時間以 Google Maps 即時計算為準</p>
             </div>
-            ${mapStop ? `<iframe class="map-frame" title="Google Maps Preview" loading="lazy" src="${attr(buildEmbedMapUrl(mapStop))}"></iframe>` : `<div class="loading-overlay">這天還沒有可顯示的地點</div>`}
             <div class="map-stop-row">
               ${dayStops.map((stop, index) => `
                 <button class="map-stop ${index === state.selectedMapIndex ? "active" : ""}" data-action="select-map-stop" data-index="${index}">
-                  ${escapeHtml(stop.time || "--:--")}　${escapeHtml(stop.title)}
+                  <span class="map-stop-time">${escapeHtml(stop.time || "--:--")}${stop.endTime ? ` – ${escapeHtml(stop.endTime)}` : ""}</span>
+                  <span class="map-stop-title">${escapeHtml(stop.title)}</span>
                 </button>
               `).join("")}
             </div>
@@ -1674,7 +2066,7 @@
             <h2>搜尋結果</h2>
             <span>${escapeHtml(String(searchedStops.length))} 個行程</span>
           </div>
-          ${stopListHtml(searchedStops)}
+          ${stopListHtml(searchedStops, "cards")}
         </div>
       `;
     }
@@ -1816,10 +2208,10 @@
         if (!parsed.length) throw new Error("雲端表格沒有可讀資料");
 
         state.rows = parsed;
-        localStorage.setItem("trip-html:lastRows", JSON.stringify(parsed));
+        localStorage.setItem("trip-html:google-sheet-live-v1", JSON.stringify(parsed));
         state.message = force ? "行程已更新" : "";
       } catch (error) {
-        const cached = localStorage.getItem("trip-html:lastRows");
+        const cached = localStorage.getItem("trip-html:google-sheet-live-v1");
         if (cached) {
           state.rows = JSON.parse(cached).map(normalizeRow);
           state.message = "目前顯示上次儲存的行程";
