@@ -119,6 +119,31 @@
       box-shadow: var(--shadow-soft);
     }
 
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .edit-btn {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 950;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .edit-btn.active {
+      border-color: rgba(47, 128, 168, 0.22);
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+    }
+
     .ghost-btn:active,
     .primary-btn:active,
     .secondary-btn:active,
@@ -1589,6 +1614,8 @@
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTYQJ1dR2xlFzx9oAimcCEZhnJvS4-_-fJ9bwgDV3SmIhlRsbcVVboF9qXwqvTVTif9rQOd0oNxZpX1/pub?output=csv";
     const WRITE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyuS5x9Q4Ks1uTvhkszFF-ENptMfcbz2ekF5uJGWLggnNVeYPDYwOhClqQF44sVlfS-/exec";
     const WRITE_TOKEN = "dreamtrip";
+    const EDIT_CODE = "0912";
+    const EDIT_MODE_KEY = "trip-html:edit-mode-v1";
 
     const FIELD_ALIASES = {
       "ID": "id",
@@ -1713,6 +1740,7 @@
       loading: true,
       message: "",
       syncStatus: "",
+      editMode: localStorage.getItem(EDIT_MODE_KEY) === "ON",
       query: "",
       category: "全部"
     };
@@ -2299,6 +2327,34 @@
       `;
     }
 
+    function requireEditMode() {
+      if (state.editMode) return true;
+      const code = window.prompt("請輸入共用編輯碼");
+      if (code === EDIT_CODE) {
+        state.editMode = true;
+        localStorage.setItem(EDIT_MODE_KEY, "ON");
+        state.message = "已開啟編輯模式";
+        render();
+        return true;
+      }
+      if (code !== null) {
+        state.message = "編輯碼錯誤";
+        render();
+      }
+      return false;
+    }
+
+    function closeEditMode() {
+      state.editMode = false;
+      localStorage.removeItem(EDIT_MODE_KEY);
+      state.message = "已關閉編輯模式";
+      render();
+    }
+
+    function editOnly(html) {
+      return state.editMode ? html : "";
+    }
+
     function topHtml(titleOverride = "") {
       const settings = getSettings();
       const dates = getDates();
@@ -2312,7 +2368,10 @@
               <h1 class="trip-title">${escapeHtml(title)}</h1>
               <p class="trip-subtitle">${escapeHtml(subtitle)}</p>
             </div>
-            <button class="ghost-btn" data-action="reload">更新</button>
+            <div class="top-actions">
+              <button class="ghost-btn" data-action="reload">更新</button>
+              <button class="edit-btn ${state.editMode ? "active" : ""}" data-action="${state.editMode ? "close-edit-mode" : "open-edit-mode"}" type="button">${state.editMode ? "編輯中" : "管理"}</button>
+            </div>
           </div>
         </header>
       `;
@@ -2366,7 +2425,7 @@
             </div>
             <div class="text-action-row">
               <button class="mini-action" data-action="export-day-text" type="button">匯出文字</button>
-              <button class="mini-action primary" data-action="add-itinerary" type="button">＋新增</button>
+              ${editOnly(`<button class="mini-action primary" data-action="add-itinerary" type="button">＋新增</button>`)}
             </div>
           </div>
           ${stopListHtml(dayStops, "today")}
@@ -2389,7 +2448,7 @@
               <h2>${escapeHtml(formatLongDate(state.selectedDate))}</h2>
               <span>${escapeHtml(String(dayStops.length))} 個行程</span>
             </div>
-            <button class="mini-action primary" data-action="add-itinerary" type="button">＋新增</button>
+            ${editOnly(`<button class="mini-action primary" data-action="add-itinerary" type="button">＋新增</button>`)}
           </div>
           ${stopListHtml(dayStops)}
         </div>
@@ -2799,10 +2858,12 @@
                 <a class="card-button outline" href="${attr(buildMapsSearchUrl(stop))}" target="_blank" rel="noreferrer">查看地點</a>
                 <a class="card-button filled" href="${attr(buildCurrentLocationDirectionsUrl(stop))}" target="_blank" rel="noreferrer">現在前往</a>
               </div>
-              <div class="inline-actions">
-                <button class="mini-action" data-action="edit-itinerary" data-stop-id="${attr(stopId(stop))}" type="button">修改</button>
-                <button class="mini-action danger" data-action="delete-itinerary" data-stop-id="${attr(stopId(stop))}" type="button">刪除</button>
-              </div>
+              ${editOnly(`
+                <div class="inline-actions">
+                  <button class="mini-action" data-action="edit-itinerary" data-stop-id="${attr(stopId(stop))}" type="button">修改</button>
+                  <button class="mini-action danger" data-action="delete-itinerary" data-stop-id="${attr(stopId(stop))}" type="button">刪除</button>
+                </div>
+              `)}
             </div>
           </section>
         </div>
@@ -2878,11 +2939,13 @@
                 </div>
               ` : ""}
 
-              <div class="inline-actions">
-                ${isJoined
-                  ? `<button class="mini-action primary" type="button" disabled>已加入行程</button>`
-                  : `<button class="mini-action primary" data-action="convert-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">加入行程</button>`}
-              </div>
+              ${editOnly(`
+                <div class="inline-actions">
+                  ${isJoined
+                    ? `<button class="mini-action primary" type="button" disabled>已加入行程</button>`
+                    : `<button class="mini-action primary" data-action="convert-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">加入行程</button>`}
+                </div>
+              `)}
               <div class="detail-actions">
                 <button class="card-button outline" data-action="copy-address" data-copy="${attr(getDestinationQuery(place))}" type="button">複製地址</button>
                 <a class="card-button filled" href="${attr(buildCurrentLocationDirectionsUrl(place))}" target="_blank" rel="noreferrer">現在前往</a>
@@ -2890,10 +2953,12 @@
               <div class="inline-actions">
                 <a class="mini-action" href="${attr(buildMapsSearchUrl(place))}" target="_blank" rel="noreferrer">查看地點</a>
               </div>
-              <div class="inline-actions">
-                <button class="mini-action" data-action="edit-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">修改</button>
-                <button class="mini-action danger" data-action="delete-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">刪除</button>
-              </div>
+              ${editOnly(`
+                <div class="inline-actions">
+                  <button class="mini-action" data-action="edit-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">修改</button>
+                  <button class="mini-action danger" data-action="delete-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">刪除</button>
+                </div>
+              `)}
             </div>
           </section>
         </div>
@@ -2937,7 +3002,7 @@
               <h2>候選地點</h2>
               <span>${escapeHtml(String(favoritePlaces.length))} 個地點</span>
             </div>
-            <button class="mini-action primary" data-action="add-favorite" type="button">＋新增</button>
+            ${editOnly(`<button class="mini-action primary" data-action="add-favorite" type="button">＋新增</button>`)}
           </div>
           ${favoritePlaces.length ? `
             <section class="today-list">
@@ -2946,7 +3011,7 @@
           ` : `
             <section class="favorite-empty">
               <strong>還沒有收藏候選</strong>
-              按右上角「＋新增」即可建立候選地點
+              ${state.editMode ? "按右上角「＋新增」即可建立候選地點" : "目前沒有候選地點"}
             </section>
           `}
         </div>
@@ -3132,6 +3197,61 @@
       `;
     }
 
+    function goBackFromInnerScreen() {
+      if (state.screen === "form") {
+        state.screen = state.formReturnScreen || state.previousScreen || "today";
+        state.formMode = "";
+        state.formType = "";
+        state.formId = "";
+        state.formReturnScreen = "";
+      } else if (["detail", "favorite-detail"].includes(state.screen)) {
+        const target = ["detail", "favorite-detail", "form"].includes(state.previousScreen) ? "today" : (state.previousScreen || "today");
+        state.screen = target;
+        state.selectedStopId = "";
+        state.selectedFavoriteId = "";
+        state.formMode = "";
+        state.formType = "";
+        state.formId = "";
+        state.formReturnScreen = "";
+      } else {
+        return;
+      }
+
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function setupSwipeBack() {
+      let startX = 0;
+      let startY = 0;
+      let startTime = 0;
+
+      app.ontouchstart = (event) => {
+        if (!["detail", "favorite-detail", "form"].includes(state.screen)) return;
+        const touch = event.changedTouches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        startTime = Date.now();
+      };
+
+      app.ontouchend = (event) => {
+        if (!["detail", "favorite-detail", "form"].includes(state.screen)) return;
+        const touch = event.changedTouches[0];
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+        const elapsed = Date.now() - startTime;
+
+        const startsNearLeftEdge = startX <= 90;
+        const swipedRight = dx >= 80;
+        const mostlyHorizontal = Math.abs(dy) <= 60;
+        const notTooSlow = elapsed <= 900;
+
+        if (startsNearLeftEdge && swipedRight && mostlyHorizontal && notTooSlow) {
+          goBackFromInnerScreen();
+        }
+      };
+    }
+
     function buildDayText() {
       const stops = getDayStops();
       const settings = getSettings();
@@ -3195,11 +3315,20 @@
 
       app.innerHTML = html + (["detail", "favorite-detail", "form"].includes(state.screen) ? "" : bottomNavHtml());
       bindEvents();
+      setupSwipeBack();
     }
 
     function bindEvents() {
       app.querySelectorAll("[data-action]").forEach((element) => {
         const action = element.dataset.action;
+
+        if (action === "open-edit-mode") {
+          element.addEventListener("click", () => requireEditMode());
+        }
+
+        if (action === "close-edit-mode") {
+          element.addEventListener("click", () => closeEditMode());
+        }
 
         if (action === "set-screen") {
           element.addEventListener("click", () => {
@@ -3284,27 +3413,43 @@
         }
 
         if (action === "add-itinerary") {
-          element.addEventListener("click", () => openForm("create", "行程"));
+          element.addEventListener("click", () => {
+            if (!requireEditMode()) return;
+            openForm("create", "行程");
+          });
         }
 
         if (action === "add-favorite") {
-          element.addEventListener("click", () => openForm("create", "收藏"));
+          element.addEventListener("click", () => {
+            if (!requireEditMode()) return;
+            openForm("create", "收藏");
+          });
         }
 
         if (action === "edit-itinerary") {
-          element.addEventListener("click", () => openForm("edit", "行程", element.dataset.stopId || state.selectedStopId));
+          element.addEventListener("click", () => {
+            if (!requireEditMode()) return;
+            openForm("edit", "行程", element.dataset.stopId || state.selectedStopId);
+          });
         }
 
         if (action === "edit-favorite") {
-          element.addEventListener("click", () => openForm("edit", "收藏", element.dataset.favoriteId || state.selectedFavoriteId));
+          element.addEventListener("click", () => {
+            if (!requireEditMode()) return;
+            openForm("edit", "收藏", element.dataset.favoriteId || state.selectedFavoriteId);
+          });
         }
 
         if (action === "convert-favorite") {
-          element.addEventListener("click", () => openForm("convert", "行程", element.dataset.favoriteId || state.selectedFavoriteId));
+          element.addEventListener("click", () => {
+            if (!requireEditMode()) return;
+            openForm("convert", "行程", element.dataset.favoriteId || state.selectedFavoriteId);
+          });
         }
 
         if (action === "delete-itinerary") {
           element.addEventListener("click", () => {
+            if (!requireEditMode()) return;
             const stop = findStopById(element.dataset.stopId || state.selectedStopId);
             if (!stop) return;
             const ok = confirm(`確定要刪除這筆行程？\n\n${stop.date || ""} ${stop.time || ""}\n${stop.title}\n\n刪除後會從 Google Sheet 移除。`);
@@ -3315,6 +3460,7 @@
 
         if (action === "delete-favorite") {
           element.addEventListener("click", () => {
+            if (!requireEditMode()) return;
             const place = findFavoriteById(element.dataset.favoriteId || state.selectedFavoriteId);
             if (!place) return;
             const ok = confirm(`確定要刪除這筆收藏？\n\n${place.title}\n\n刪除後會從 Google Sheet 移除。`);
@@ -3338,6 +3484,7 @@
         if (action === "submit-form") {
           element.addEventListener("submit", (event) => {
             event.preventDefault();
+            if (!requireEditMode()) return;
             const form = event.currentTarget;
             const data = Object.fromEntries(new FormData(form).entries());
             const payload = {
@@ -3378,18 +3525,7 @@
         }
 
         if (action === "back-from-detail") {
-          element.addEventListener("click", () => {
-            const target = ["detail", "favorite-detail", "form"].includes(state.previousScreen) ? "today" : (state.previousScreen || "today");
-            state.screen = target;
-            state.selectedStopId = "";
-            state.selectedFavoriteId = "";
-            state.formMode = "";
-            state.formType = "";
-            state.formId = "";
-            state.formReturnScreen = "";
-            render();
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          });
+          element.addEventListener("click", () => goBackFromInnerScreen());
         }
 
       });
