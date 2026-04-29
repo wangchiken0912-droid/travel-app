@@ -173,73 +173,90 @@
     .hero {
       overflow: hidden;
       border: 1px solid var(--line-soft);
-      border-radius: var(--radius-xl);
-      background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
-      box-shadow: var(--shadow);
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: none;
     }
 
     .hero-main {
-      padding: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 11px 14px 8px;
+    }
+
+    .date-stack {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
     }
 
     .date-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      padding: 7px 10px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: #fff;
-      color: var(--muted);
+      display: block;
+      color: var(--text);
       font-size: 12px;
-      font-weight: 900;
+      font-weight: 950;
+      line-height: 1.25;
+    }
+
+    .date-sub-label {
+      color: var(--light);
+      font-size: 10.5px;
+      font-weight: 850;
+      line-height: 1.25;
     }
 
     .hero h2 {
-      margin: 14px 0 0;
-      font-size: 28px;
+      margin: 0;
+      font-size: 17px;
       font-weight: 950;
-      line-height: 1.12;
-      letter-spacing: -0.045em;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
     }
 
     .hero p {
-      margin: 8px 0 0;
+      display: -webkit-box;
+      overflow: hidden;
+      margin: 0;
       color: var(--muted);
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
-      line-height: 1.65;
+      line-height: 1.5;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
     }
 
     .hero-stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      border-top: 1px solid var(--line-soft);
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
       background: #fff;
+      padding: 0;
     }
 
     .hero-stat {
-      padding: 13px 10px;
-      text-align: center;
-      border-right: 1px solid var(--line-soft);
-    }
-
-    .hero-stat:last-child {
-      border-right: 0;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 4px;
+      padding: 5px 7px;
+      border: 1px solid var(--line-soft);
+      border-radius: 999px;
+      background: var(--card-soft);
+      text-align: left;
     }
 
     .hero-stat strong {
-      display: block;
-      font-size: 18px;
+      display: inline;
+      font-size: 13px;
       font-weight: 950;
     }
 
     .hero-stat span {
-      display: block;
-      margin-top: 2px;
+      display: inline;
       color: var(--light);
       font-size: 10px;
-      font-weight: 950;
+      font-weight: 900;
     }
 
     .next-card {
@@ -1394,6 +1411,41 @@
       line-height: 1.6;
     }
 
+    .quick-required {
+      color: var(--primary);
+      font-weight: 950;
+    }
+
+    .advanced-box {
+      border-top: 1px solid var(--line-soft);
+      padding-top: 12px;
+      margin-top: 2px;
+    }
+
+    .advanced-box summary {
+      cursor: pointer;
+      list-style: none;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 950;
+      padding: 8px 0;
+    }
+
+    .advanced-box summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .advanced-box summary::after {
+      content: "＋";
+      float: right;
+      color: var(--light);
+      font-weight: 950;
+    }
+
+    .advanced-box[open] summary::after {
+      content: "－";
+    }
+
     .bottom-nav {
       position: fixed;
       inset: auto 0 0;
@@ -1636,6 +1688,7 @@
       formMode: "",
       formType: "",
       formId: "",
+      formReturnScreen: "",
       favorites: getStoredFavoriteIds(),
       loading: true,
       message: "",
@@ -1812,7 +1865,24 @@
           imageUrl: row.imageUrl || "",
           updatedAt: row.updatedAt || ""
         }))
-        .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.order - b.order);
+        .sort((a, b) => {
+          const dateSort = a.date.localeCompare(b.date);
+          if (dateSort) return dateSort;
+
+          const aMinutes = toMinutes(a.time);
+          const bMinutes = toMinutes(b.time);
+          const aHasTime = aMinutes !== null;
+          const bHasTime = bMinutes !== null;
+
+          if (aHasTime && bHasTime && aMinutes !== bMinutes) return aMinutes - bMinutes;
+          if (aHasTime && !bHasTime) return -1;
+          if (!aHasTime && bHasTime) return 1;
+
+          const orderSort = a.order - b.order;
+          if (orderSort) return orderSort;
+
+          return stopId(a).localeCompare(stopId(b));
+        });
     }
 
     function favoriteId(place) {
@@ -1845,6 +1915,33 @@
 
     function findFavoriteById(id) {
       return getFavoritePlaces().find((place) => favoriteId(place) === id) || null;
+    }
+
+    function parseTripRangeFromSettings() {
+      const settings = getSettings();
+      const text = [settings.tripTitle, settings.tripSubtitle, settings.globalNotice].filter(Boolean).join(" ");
+      const match = text.match(/(\d{1,2})\/(\d{1,2})\s*[–\-~～至到]\s*(\d{1,2})\/(\d{1,2})/);
+      if (!match) return null;
+
+      const existingDates = getNormalizedRows().map((row) => row.date).filter(Boolean).sort();
+      const baseYear = existingDates[0]?.slice(0, 4) || String(new Date().getFullYear());
+      const start = new Date(`${baseYear}-${match[1].padStart(2, "0")}-${match[2].padStart(2, "0")}T00:00:00`);
+      const end = new Date(`${baseYear}-${match[3].padStart(2, "0")}-${match[4].padStart(2, "0")}T00:00:00`);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return null;
+
+      const dates = [];
+      const cursor = new Date(start);
+      while (cursor <= end) {
+        dates.push(cursor.toISOString().slice(0, 10));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      return dates;
+    }
+
+    function getTripDateOptions() {
+      const rangeDates = parseTripRangeFromSettings();
+      if (rangeDates && rangeDates.length) return rangeDates;
+      return getDates();
     }
 
     function getDates() {
@@ -2212,7 +2309,11 @@
       const nextStop = getNextStop(dayStops);
       const dailyNotice = getDailyNotice();
       const firstTime = dayStops[0]?.time || "--";
-      const confirmedCount = dayStops.filter((stop) => stop.status === "確定").length;
+      const realToday = todayISO();
+      const realTodayLabel = formatLongDate(realToday);
+      const displayDateLabel = state.selectedDate === realToday
+        ? "顯示今日行程"
+        : `顯示 ${formatDateLabel(state.selectedDate)} 行程`;
 
       const nextBlock = nextStop ? `
         <section class="section next-card">
@@ -2248,14 +2349,14 @@
           ${messageHtml()}
           <section class="section hero">
             <div class="hero-main">
-              <span class="date-label">${escapeHtml(formatLongDate(state.selectedDate))}</span>
-              <h2>${escapeHtml(settings.tripTitle || "大阪・京都行程")}</h2>
-              <p>${escapeHtml(settings.globalNotice || getTripRange(dates))}</p>
-            </div>
-            <div class="hero-stats">
-              <div class="hero-stat"><strong>${escapeHtml(String(dayStops.length))}</strong><span>今日行程</span></div>
-              <div class="hero-stat"><strong>${escapeHtml(String(confirmedCount))}</strong><span>確定</span></div>
-              <div class="hero-stat"><strong>${escapeHtml(firstTime)}</strong><span>開始時間</span></div>
+              <div class="date-stack">
+                <span class="date-label">${escapeHtml(realTodayLabel)}</span>
+                <span class="date-sub-label">${escapeHtml(displayDateLabel)}</span>
+              </div>
+              <div class="hero-stats">
+                <div class="hero-stat"><strong>${escapeHtml(String(dayStops.length))}</strong><span>行程</span></div>
+                <div class="hero-stat"><strong>${escapeHtml(firstTime)}</strong><span>開始</span></div>
+              </div>
             </div>
           </section>
 
@@ -2472,7 +2573,10 @@
     }
 
     function openForm(mode, type, id = "") {
-      state.previousScreen = state.screen;
+      state.formReturnScreen = state.screen;
+      if (!["detail", "favorite-detail"].includes(state.screen)) {
+        state.previousScreen = state.screen;
+      }
       state.formMode = mode;
       state.formType = type;
       state.formId = id;
@@ -2752,6 +2856,46 @@
 
       const type = isConvert ? "行程" : state.formType || "行程";
       const submitLabel = isEdit ? "儲存修改" : isConvert ? "加入行程" : "新增";
+      const dates = getTripDateOptions();
+      const fallbackDate = state.selectedDate || dates[0] || "";
+      const selectedDate = item.date || fallbackDate;
+      const dateOptions = dates.length
+        ? dates.map((date) => `<option value="${attr(date)}" ${selectedDate === date ? "selected" : ""}>${escapeHtml(formatDateLabel(date))}</option>`).join("")
+        : `<option value="${attr(selectedDate)}">${escapeHtml(selectedDate || "未設定日期")}</option>`;
+      const dateTimeFields = isFavorite ? `
+        <input type="hidden" name="date" value="">
+        <input type="hidden" name="time" value="">
+        <input type="hidden" name="endTime" value="">
+      ` : `
+        <div class="form-row-2">
+          <label class="form-label"><span>日期 <span class="quick-required">必填</span></span>
+            <select class="form-select" name="date" required>
+              ${dateOptions}
+            </select>
+          </label>
+          <label class="form-label">分類
+            <select class="form-select" name="category">
+              ${["景點","餐廳","交通","購物","住宿","備用"].map((cat) => `<option value="${cat}" ${(item.category || "景點") === cat ? "selected" : ""}>${cat}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+
+        <div class="form-row-2">
+          <label class="form-label">開始時間
+            <input class="form-field" name="time" type="time" value="${formValue(item, "time")}">
+          </label>
+          <label class="form-label">結束時間
+            <input class="form-field" name="endTime" type="time" value="${formValue(item, "endTime")}">
+          </label>
+        </div>
+      `;
+      const favoriteCategoryField = isFavorite ? `
+        <label class="form-label">分類
+          <select class="form-select" name="category">
+            ${["景點","餐廳","交通","購物","住宿","備用"].map((cat) => `<option value="${cat}" ${(item.category || "景點") === cat ? "selected" : ""}>${cat}</option>`).join("")}
+          </select>
+        </label>
+      ` : "";
 
       return `
         ${topHtml(title)}
@@ -2759,57 +2903,48 @@
           ${messageHtml()}
           <section class="form-card">
             <p class="form-help">
-              ${isFavorite ? "收藏不用填日期跟時間；正式排入行程時再補日期、開始時間跟結束時間" : "行程建議填日期、開始時間跟結束時間，今天頁跟時間軸才會正常排序"}
+              ${isFavorite
+                ? "快速收藏只需要填標題、分類跟地址；其他資訊可以之後再補"
+                : "快速新增只需要填日期、開始時間、標題、分類跟地址；其他資訊收在更多設定"}
             </p>
 
             <form class="form-grid-full" data-action="submit-form">
               <input type="hidden" name="id" value="${formValue(item, "id")}">
               <input type="hidden" name="type" value="${attr(type)}">
-              <div class="form-row-2">
-                <label class="form-label">日期
-                  <input class="form-field" name="date" type="date" value="${formValue(item, "date")}">
-                </label>
-                <label class="form-label">分類
-                  <select class="form-select" name="category">
-                    ${["景點","餐廳","交通","購物","住宿","備用"].map((cat) => `<option value="${cat}" ${(item.category || "景點") === cat ? "selected" : ""}>${cat}</option>`).join("")}
-                  </select>
-                </label>
-              </div>
+              ${dateTimeFields}
+              ${favoriteCategoryField}
 
-              <div class="form-row-2">
-                <label class="form-label">開始時間
-                  <input class="form-field" name="time" type="time" value="${formValue(item, "time")}">
-                </label>
-                <label class="form-label">結束時間
-                  <input class="form-field" name="endTime" type="time" value="${formValue(item, "endTime")}">
-                </label>
-              </div>
-
-              <label class="form-label">標題
+              <label class="form-label"><span>標題 <span class="quick-required">必填</span></span>
                 <input class="form-field" name="title" value="${formValue(item, "title")}" placeholder="例如：心齋橋筋商店街" required>
               </label>
 
-              <label class="form-label">區域
-                <input class="form-field" name="area" value="${formValue(item, "area")}" placeholder="例如：梅田、心齋橋、河原町">
-              </label>
-
-              <label class="form-label">地址
+              <label class="form-label">地址 / 店名
                 <input class="form-field" name="address" value="${formValue(item, "address")}" placeholder="Google Maps 可搜尋的地址或店名">
               </label>
 
-              <label class="form-label">備註
-                <textarea class="form-textarea" name="notice" placeholder="交通、提醒、備案理由都寫這裡">${escapeHtml(item.notice || item.transitNote || "")}</textarea>
-              </label>
+              <details class="advanced-box">
+                <summary>更多設定</summary>
 
-              <label class="form-label">圖片連結
-                <input class="form-field" name="imageUrl" value="${formValue(item, "imageUrl")}" placeholder="可空白">
-              </label>
+                <div class="form-grid-full">
+                  <label class="form-label">區域
+                    <input class="form-field" name="area" value="${formValue(item, "area")}" placeholder="例如：梅田、心齋橋、河原町">
+                  </label>
 
-              <label class="form-label">重要度
-                <select class="form-select" name="priority">
-                  ${["","高","中","低"].map((level) => `<option value="${level}" ${(item.priority || "") === level ? "selected" : ""}>${level || "不設定"}</option>`).join("")}
-                </select>
-              </label>
+                  <label class="form-label">備註
+                    <textarea class="form-textarea" name="notice" placeholder="交通、提醒、備案理由都寫這裡">${escapeHtml(item.notice || item.transitNote || "")}</textarea>
+                  </label>
+
+                  <label class="form-label">圖片連結
+                    <input class="form-field" name="imageUrl" value="${formValue(item, "imageUrl")}" placeholder="可空白">
+                  </label>
+
+                  <label class="form-label">重要度
+                    <select class="form-select" name="priority">
+                      ${["","高","中","低"].map((level) => `<option value="${level}" ${(item.priority || "") === level ? "selected" : ""}>${level || "不設定"}</option>`).join("")}
+                    </select>
+                  </label>
+                </div>
+              </details>
 
               <div class="form-actions">
                 <button class="secondary-btn" data-action="cancel-form" type="button">取消</button>
@@ -2895,6 +3030,7 @@
             state.formMode = "";
             state.formType = "";
             state.formId = "";
+            state.formReturnScreen = "";
             render();
             window.scrollTo({ top: 0, behavior: "smooth" });
           });
@@ -2990,7 +3126,9 @@
         if (action === "delete-itinerary") {
           element.addEventListener("click", () => {
             const stop = findStopById(element.dataset.stopId || state.selectedStopId);
-            if (!stop || !confirm(`確定刪除「${stop.title}」？`)) return;
+            if (!stop) return;
+            const ok = confirm(`確定要刪除這筆行程？\n\n${stop.date || ""} ${stop.time || ""}\n${stop.title}\n\n刪除後會從 Google Sheet 移除。`);
+            if (!ok) return;
             sendWrite("delete", { id: stopId(stop), type: "行程", title: stop.title });
           });
         }
@@ -2998,17 +3136,20 @@
         if (action === "delete-favorite") {
           element.addEventListener("click", () => {
             const place = findFavoriteById(element.dataset.favoriteId || state.selectedFavoriteId);
-            if (!place || !confirm(`確定刪除「${place.title}」？`)) return;
+            if (!place) return;
+            const ok = confirm(`確定要刪除這筆收藏？\n\n${place.title}\n\n刪除後會從 Google Sheet 移除。`);
+            if (!ok) return;
             sendWrite("delete", { id: favoriteId(place), type: "收藏", title: place.title });
           });
         }
 
         if (action === "cancel-form") {
           element.addEventListener("click", () => {
-            state.screen = state.previousScreen || "today";
+            state.screen = state.formReturnScreen || state.previousScreen || "today";
             state.formMode = "";
             state.formType = "";
             state.formId = "";
+            state.formReturnScreen = "";
             render();
             window.scrollTo({ top: 0, behavior: "smooth" });
           });
@@ -3041,9 +3182,14 @@
 
         if (action === "back-from-detail") {
           element.addEventListener("click", () => {
-            state.screen = state.previousScreen || "today";
+            const target = ["detail", "favorite-detail", "form"].includes(state.previousScreen) ? "today" : (state.previousScreen || "today");
+            state.screen = target;
             state.selectedStopId = "";
             state.selectedFavoriteId = "";
+            state.formMode = "";
+            state.formType = "";
+            state.formId = "";
+            state.formReturnScreen = "";
             render();
             window.scrollTo({ top: 0, behavior: "smooth" });
           });
