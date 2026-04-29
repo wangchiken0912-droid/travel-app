@@ -157,6 +157,19 @@
       font-weight: 800;
     }
 
+    .section-title-group {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .section-title .mini-action {
+      flex: 0 0 auto;
+      padding: 8px 11px;
+      font-size: 11.5px;
+      white-space: nowrap;
+    }
+
     .hero {
       overflow: hidden;
       border: 1px solid var(--line-soft);
@@ -1289,6 +1302,98 @@
       margin-top: 10px;
     }
 
+    .inline-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .mini-action {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--text);
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .mini-action.primary {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .mini-action.danger {
+      border-color: rgba(220, 38, 38, 0.18);
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
+    .form-card {
+      border-top: 1px solid var(--line-soft);
+      border-bottom: 1px solid var(--line-soft);
+      background: #fff;
+      padding: 16px 0 18px;
+    }
+
+    .form-grid-full {
+      display: grid;
+      gap: 12px;
+    }
+
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .form-label {
+      display: grid;
+      gap: 6px;
+      color: var(--light);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: 0.03em;
+    }
+
+    .form-field,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      color: var(--text);
+      padding: 11px 12px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      outline: none;
+    }
+
+    .form-textarea {
+      min-height: 94px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    .form-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .form-help {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.6;
+    }
+
     .bottom-nav {
       position: fixed;
       inset: auto 0 0;
@@ -1410,8 +1515,13 @@
     "use strict";
 
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTYQJ1dR2xlFzx9oAimcCEZhnJvS4-_-fJ9bwgDV3SmIhlRsbcVVboF9qXwqvTVTif9rQOd0oNxZpX1/pub?output=csv";
+    const WRITE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyuS5x9Q4Ks1uTvhkszFF-ENptMfcbz2ekF5uJGWLggnNVeYPDYwOhClqQF44sVlfS-/exec";
+    const WRITE_TOKEN = "dreamtrip";
 
     const FIELD_ALIASES = {
+      "ID": "id",
+      "id": "id",
+      "Id": "id",
       "類型": "type",
       "日期": "date",
       "排序": "order",
@@ -1523,6 +1633,9 @@
       selectedMapIndex: 0,
       selectedStopId: "",
       selectedFavoriteId: "",
+      formMode: "",
+      formType: "",
+      formId: "",
       favorites: getStoredFavoriteIds(),
       loading: true,
       message: "",
@@ -1560,6 +1673,7 @@
     }
 
     function stopId(stop) {
+      if (stop.id) return stop.id;
       return [stop.date || "", String(stop.order || ""), stop.time || "", stop.title || ""]
         .join("__")
         .replace(/\s+/g, "_");
@@ -1676,6 +1790,7 @@
       return getNormalizedRows()
         .filter((row) => row.type === "itinerary" && isVisible(row))
         .map((row, index) => ({
+          id: row.id || "",
           type: "itinerary",
           date: row.date || "",
           order: Number(row.order || index + 1),
@@ -1694,12 +1809,14 @@
           status: row.status || "",
           visible: row.visible || "TRUE",
           priority: row.priority || "",
-          imageUrl: row.imageUrl || ""
+          imageUrl: row.imageUrl || "",
+          updatedAt: row.updatedAt || ""
         }))
         .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.order - b.order);
     }
 
     function favoriteId(place) {
+      if (place.id) return place.id;
       return [place.title || "", place.area || "", place.category || "", place.address || ""]
         .join("__")
         .replace(/\s+/g, "_");
@@ -1709,6 +1826,7 @@
       return getNormalizedRows()
         .filter((row) => row.type === "favorite" && isVisible(row))
         .map((row) => ({
+          id: row.id || "",
           type: "favorite",
           title: row.title || "未設定地點",
           category: row.category || "景點",
@@ -1720,7 +1838,8 @@
           notice: row.notice || "",
           priority: row.priority || "",
           imageUrl: row.imageUrl || "",
-          visible: row.visible || "TRUE"
+          visible: row.visible || "TRUE",
+          updatedAt: row.updatedAt || ""
         }));
     }
 
@@ -2145,8 +2264,11 @@
           ${dailyNotice ? `<section class="section notice">${escapeHtml(dailyNotice)}</section>` : ""}
 
           <div class="section-title">
-            <h2>今日清單</h2>
-            <span>${escapeHtml(formatDateLabel(state.selectedDate))}</span>
+            <div class="section-title-group">
+              <h2>今日清單</h2>
+              <span>${escapeHtml(formatDateLabel(state.selectedDate))}</span>
+            </div>
+            <button class="mini-action primary" data-action="add-itinerary" type="button">＋新增</button>
           </div>
           ${stopListHtml(dayStops, "today")}
         </div>
@@ -2164,8 +2286,11 @@
           ${messageHtml()}
           ${dailyNotice ? `<section class="section notice">${escapeHtml(dailyNotice)}</section>` : ""}
           <div class="section-title">
-            <h2>${escapeHtml(formatLongDate(state.selectedDate))}</h2>
-            <span>${escapeHtml(String(dayStops.length))} 個行程</span>
+            <div class="section-title-group">
+              <h2>${escapeHtml(formatLongDate(state.selectedDate))}</h2>
+              <span>${escapeHtml(String(dayStops.length))} 個行程</span>
+            </div>
+            <button class="mini-action primary" data-action="add-itinerary" type="button">＋新增</button>
           </div>
           ${stopListHtml(dayStops)}
         </div>
@@ -2275,6 +2400,91 @@
       `;
     }
 
+    function getEditableItem() {
+      if (state.formType === "收藏") return findFavoriteById(state.formId) || {};
+      if (state.formType === "行程") return findStopById(state.formId) || {};
+      return {};
+    }
+
+    function isWriteReady() {
+      return Boolean(WRITE_WEB_APP_URL && WRITE_WEB_APP_URL.trim());
+    }
+
+    function actionPayload(action, data) {
+      return {
+        token: WRITE_TOKEN,
+        action,
+        data
+      };
+    }
+
+    function normalizeWriteData(raw) {
+      return {
+        ID: raw.id || raw.ID || "",
+        類型: raw.type || "行程",
+        日期: raw.date || "",
+        開始時間: raw.time || "",
+        結束時間: raw.endTime || "",
+        標題: raw.title || "",
+        分類: raw.category || "景點",
+        區域: raw.area || "",
+        地址: raw.address || "",
+        備註: raw.notice || "",
+        圖片連結: raw.imageUrl || "",
+        重要度: raw.priority || ""
+      };
+    }
+
+    async function sendWrite(action, data) {
+      if (!isWriteReady()) {
+        state.message = "尚未設定 Google Apps Script 寫入端";
+        render();
+        return;
+      }
+
+      state.message = "正在送出變更";
+      render();
+
+      const payload = actionPayload(action, normalizeWriteData(data));
+
+      try {
+        await fetch(WRITE_WEB_APP_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+
+        state.message = "已送出，稍後同步最新資料";
+        state.screen = data.類型 === "收藏" || data.type === "收藏" ? "favorites" : "today";
+        state.selectedStopId = "";
+        state.selectedFavoriteId = "";
+        state.formMode = "";
+        state.formType = "";
+        state.formId = "";
+        render();
+
+        window.setTimeout(() => loadRows(true), 1800);
+      } catch (error) {
+        state.message = "送出失敗，請檢查網路或 Apps Script 設定";
+        render();
+      }
+    }
+
+    function openForm(mode, type, id = "") {
+      state.previousScreen = state.screen;
+      state.formMode = mode;
+      state.formType = type;
+      state.formId = id;
+      state.screen = "form";
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function formValue(item, key) {
+      return attr(item?.[key] || "");
+    }
+
     function detailImageHtml(stop) {
       const fallback = placeholderHtml(stop.category, Boolean(stop.imageUrl));
       const img = stop.imageUrl
@@ -2346,6 +2556,10 @@
               <div class="detail-actions">
                 <a class="card-button outline" href="${attr(buildMapsSearchUrl(stop))}" target="_blank" rel="noreferrer">查看地點</a>
                 <a class="card-button filled" href="${attr(buildCurrentLocationDirectionsUrl(stop))}" target="_blank" rel="noreferrer">現在前往</a>
+              </div>
+              <div class="inline-actions">
+                <button class="mini-action" data-action="edit-itinerary" data-stop-id="${attr(stopId(stop))}" type="button">修改</button>
+                <button class="mini-action danger" data-action="delete-itinerary" data-stop-id="${attr(stopId(stop))}" type="button">刪除</button>
               </div>
             </div>
           </section>
@@ -2421,9 +2635,16 @@
                 </div>
               ` : ""}
 
+              <div class="inline-actions">
+                <button class="mini-action primary" data-action="convert-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">加入行程</button>
+              </div>
               <div class="detail-actions">
                 <a class="card-button outline" href="${attr(buildMapsSearchUrl(place))}" target="_blank" rel="noreferrer">查看地點</a>
                 <a class="card-button filled" href="${attr(buildCurrentLocationDirectionsUrl(place))}" target="_blank" rel="noreferrer">現在前往</a>
+              </div>
+              <div class="inline-actions">
+                <button class="mini-action" data-action="edit-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">修改</button>
+                <button class="mini-action danger" data-action="delete-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">刪除</button>
               </div>
             </div>
           </section>
@@ -2463,12 +2684,12 @@
         ${topHtml("收藏")}
         <div class="page content">
           ${messageHtml()}
-          <section class="section notice">
-            收藏區只放還沒排進正式行程、但想先存起來的候選景點、餐廳或購物點。要新增收藏，請在 Google Sheet 新增一列並把「類型」填成「收藏」。
-          </section>
           <div class="section-title">
-            <h2>候選地點</h2>
-            <span>${escapeHtml(String(favoritePlaces.length))} 個地點</span>
+            <div class="section-title-group">
+              <h2>候選地點</h2>
+              <span>${escapeHtml(String(favoritePlaces.length))} 個地點</span>
+            </div>
+            <button class="mini-action primary" data-action="add-favorite" type="button">＋新增</button>
           </div>
           ${favoritePlaces.length ? `
             <section class="today-list">
@@ -2477,7 +2698,7 @@
           ` : `
             <section class="favorite-empty">
               <strong>還沒有收藏候選</strong>
-              在 Google Sheet 新增「類型 = 收藏」的資料後，這裡會自動顯示
+              按右上角「＋新增」即可建立候選地點
             </section>
           `}
         </div>
@@ -2514,6 +2735,88 @@
             <span>${escapeHtml(String(searchedStops.length))} 個行程</span>
           </div>
           ${stopListHtml(searchedStops, "cards")}
+        </div>
+      `;
+    }
+
+    function formPageHtml() {
+      const isFavorite = state.formType === "收藏";
+      const isConvert = state.formMode === "convert";
+      const isEdit = state.formMode === "edit";
+      const item = isConvert ? findFavoriteById(state.formId) || {} : getEditableItem();
+      const title = isConvert
+        ? "加入正式行程"
+        : isEdit
+          ? `修改${state.formType}`
+          : `新增${state.formType}`;
+
+      const type = isConvert ? "行程" : state.formType || "行程";
+      const submitLabel = isEdit ? "儲存修改" : isConvert ? "加入行程" : "新增";
+
+      return `
+        ${topHtml(title)}
+        <div class="page content">
+          ${messageHtml()}
+          <section class="form-card">
+            <p class="form-help">
+              ${isFavorite ? "收藏不用填日期跟時間；正式排入行程時再補日期、開始時間跟結束時間" : "行程建議填日期、開始時間跟結束時間，今天頁跟時間軸才會正常排序"}
+            </p>
+
+            <form class="form-grid-full" data-action="submit-form">
+              <input type="hidden" name="id" value="${formValue(item, "id")}">
+              <input type="hidden" name="type" value="${attr(type)}">
+              <div class="form-row-2">
+                <label class="form-label">日期
+                  <input class="form-field" name="date" type="date" value="${formValue(item, "date")}">
+                </label>
+                <label class="form-label">分類
+                  <select class="form-select" name="category">
+                    ${["景點","餐廳","交通","購物","住宿","備用"].map((cat) => `<option value="${cat}" ${(item.category || "景點") === cat ? "selected" : ""}>${cat}</option>`).join("")}
+                  </select>
+                </label>
+              </div>
+
+              <div class="form-row-2">
+                <label class="form-label">開始時間
+                  <input class="form-field" name="time" type="time" value="${formValue(item, "time")}">
+                </label>
+                <label class="form-label">結束時間
+                  <input class="form-field" name="endTime" type="time" value="${formValue(item, "endTime")}">
+                </label>
+              </div>
+
+              <label class="form-label">標題
+                <input class="form-field" name="title" value="${formValue(item, "title")}" placeholder="例如：心齋橋筋商店街" required>
+              </label>
+
+              <label class="form-label">區域
+                <input class="form-field" name="area" value="${formValue(item, "area")}" placeholder="例如：梅田、心齋橋、河原町">
+              </label>
+
+              <label class="form-label">地址
+                <input class="form-field" name="address" value="${formValue(item, "address")}" placeholder="Google Maps 可搜尋的地址或店名">
+              </label>
+
+              <label class="form-label">備註
+                <textarea class="form-textarea" name="notice" placeholder="交通、提醒、備案理由都寫這裡">${escapeHtml(item.notice || item.transitNote || "")}</textarea>
+              </label>
+
+              <label class="form-label">圖片連結
+                <input class="form-field" name="imageUrl" value="${formValue(item, "imageUrl")}" placeholder="可空白">
+              </label>
+
+              <label class="form-label">重要度
+                <select class="form-select" name="priority">
+                  ${["","高","中","低"].map((level) => `<option value="${level}" ${(item.priority || "") === level ? "selected" : ""}>${level || "不設定"}</option>`).join("")}
+                </select>
+              </label>
+
+              <div class="form-actions">
+                <button class="secondary-btn" data-action="cancel-form" type="button">取消</button>
+                <button class="primary-btn" type="submit">${submitLabel}</button>
+              </div>
+            </form>
+          </section>
         </div>
       `;
     }
@@ -2573,8 +2876,9 @@
       if (state.screen === "favorites") html = favoritesPageHtml();
       if (state.screen === "detail") html = detailPageHtml();
       if (state.screen === "favorite-detail") html = favoritePlaceDetailPageHtml();
+      if (state.screen === "form") html = formPageHtml();
 
-      app.innerHTML = html + (["detail", "favorite-detail"].includes(state.screen) ? "" : bottomNavHtml());
+      app.innerHTML = html + (["detail", "favorite-detail", "form"].includes(state.screen) ? "" : bottomNavHtml());
       bindEvents();
     }
 
@@ -2588,6 +2892,9 @@
             state.screen = element.dataset.screen;
             state.selectedStopId = "";
             state.selectedFavoriteId = "";
+            state.formMode = "";
+            state.formType = "";
+            state.formId = "";
             render();
             window.scrollTo({ top: 0, behavior: "smooth" });
           });
@@ -2657,6 +2964,78 @@
             state.screen = "favorite-detail";
             render();
             window.scrollTo({ top: 0, behavior: "smooth" });
+          });
+        }
+
+        if (action === "add-itinerary") {
+          element.addEventListener("click", () => openForm("create", "行程"));
+        }
+
+        if (action === "add-favorite") {
+          element.addEventListener("click", () => openForm("create", "收藏"));
+        }
+
+        if (action === "edit-itinerary") {
+          element.addEventListener("click", () => openForm("edit", "行程", element.dataset.stopId || state.selectedStopId));
+        }
+
+        if (action === "edit-favorite") {
+          element.addEventListener("click", () => openForm("edit", "收藏", element.dataset.favoriteId || state.selectedFavoriteId));
+        }
+
+        if (action === "convert-favorite") {
+          element.addEventListener("click", () => openForm("convert", "行程", element.dataset.favoriteId || state.selectedFavoriteId));
+        }
+
+        if (action === "delete-itinerary") {
+          element.addEventListener("click", () => {
+            const stop = findStopById(element.dataset.stopId || state.selectedStopId);
+            if (!stop || !confirm(`確定刪除「${stop.title}」？`)) return;
+            sendWrite("delete", { id: stopId(stop), type: "行程", title: stop.title });
+          });
+        }
+
+        if (action === "delete-favorite") {
+          element.addEventListener("click", () => {
+            const place = findFavoriteById(element.dataset.favoriteId || state.selectedFavoriteId);
+            if (!place || !confirm(`確定刪除「${place.title}」？`)) return;
+            sendWrite("delete", { id: favoriteId(place), type: "收藏", title: place.title });
+          });
+        }
+
+        if (action === "cancel-form") {
+          element.addEventListener("click", () => {
+            state.screen = state.previousScreen || "today";
+            state.formMode = "";
+            state.formType = "";
+            state.formId = "";
+            render();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          });
+        }
+
+        if (action === "submit-form") {
+          element.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const data = Object.fromEntries(new FormData(form).entries());
+            const payload = {
+              id: data.id || "",
+              type: data.type || "行程",
+              date: data.date || "",
+              time: data.time || "",
+              endTime: data.endTime || "",
+              title: data.title || "",
+              category: data.category || "景點",
+              area: data.area || "",
+              address: data.address || "",
+              notice: data.notice || "",
+              imageUrl: data.imageUrl || "",
+              priority: data.priority || ""
+            };
+
+            const actionName = state.formMode === "edit" || state.formMode === "convert" ? "update" : "create";
+            sendWrite(actionName, payload);
           });
         }
 
