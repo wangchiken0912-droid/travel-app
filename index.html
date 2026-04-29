@@ -515,6 +515,150 @@
       -webkit-box-orient: vertical;
     }
 
+    .today-item,
+    .timeline-item {
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .today-item:active,
+    .timeline-item:active {
+      opacity: 0.72;
+    }
+
+    .today-tail {
+      display: grid;
+      place-items: center;
+      width: 18px;
+      color: var(--light);
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .favorite-thumb .thumb-icon {
+      right: 5px;
+      bottom: 5px;
+    }
+
+    .detail-hero {
+      overflow: hidden;
+      border-bottom: 1px solid var(--line-soft);
+      background: #fff;
+    }
+
+    .detail-image {
+      position: relative;
+      height: 210px;
+      overflow: hidden;
+      background: #eef2f6;
+    }
+
+    .detail-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .detail-image .thumb-placeholder svg {
+      width: 76px;
+      height: 76px;
+    }
+
+    .detail-body {
+      padding: 16px 18px 22px;
+      background: #fff;
+    }
+
+    .detail-top-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .back-btn,
+    .favorite-btn {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--text);
+      padding: 9px 12px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .favorite-btn.active {
+      border-color: rgba(47, 128, 168, 0.22);
+      background: rgba(47, 128, 168, 0.1);
+      color: var(--primary);
+    }
+
+    .detail-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 26px;
+      font-weight: 950;
+      letter-spacing: -0.03em;
+      line-height: 1.12;
+    }
+
+    .detail-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    .detail-section {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line-soft);
+    }
+
+    .detail-label {
+      margin-bottom: 7px;
+      color: var(--light);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: 0.05em;
+    }
+
+    .detail-text {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.7;
+      word-break: break-word;
+    }
+
+    .detail-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .favorite-empty {
+      border-top: 1px solid var(--line-soft);
+      border-bottom: 1px solid var(--line-soft);
+      background: #fff;
+      padding: 34px 18px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+      line-height: 1.65;
+    }
+
+    .favorite-empty strong {
+      display: block;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 950;
+      margin-bottom: 5px;
+    }
+
     .timeline-list {
       display: grid;
       gap: 0;
@@ -1312,7 +1456,12 @@
       "緊急聯絡備註": "emergencyNote",
       "旅程標題": "tripTitle",
       "旅程副標題": "tripSubtitle",
-      "副標題": "tripSubtitle"
+      "副標題": "tripSubtitle",
+      "區域": "area",
+      "地區": "area",
+      "所在區域": "area",
+      "優先度": "priority",
+      "候選備註": "notice"
     };
 
     const TYPE_ALIASES = {
@@ -1331,7 +1480,12 @@
       "當日提醒": "daily_notice",
       "日提醒": "daily_notice",
       "緊急聯絡": "emergency",
-      "緊急資訊": "emergency"
+      "緊急資訊": "emergency",
+      "收藏": "favorite",
+      "候選": "favorite",
+      "候選地點": "favorite",
+      "想去": "favorite",
+      "備選": "favorite"
     };
 
     const SAMPLE_ROWS = [
@@ -1359,11 +1513,17 @@
       { type: "itinerary", date: "2026-06-04", order: "6", time: "12:00", endTime: "13:30", title: "四條烏丸 / 錦市場午餐", category: "餐廳", address: "Nishiki Market, Kyoto", mapUrl: "https://www.google.com/maps/search/?api=1&query=Nishiki%20Market%20Kyoto", duration: "90 分鐘", transitNote: "寄完行李後，直接往錦市場、四條通方向走", notice: "當作逛跟小吃即可", status: "確定", visible: "TRUE", priority: "中", imageUrl: "" }
     ];
 
+    const FAVORITE_STORAGE_KEY = "trip-html:favorites-v1";
+
     const state = {
       rows: getInitialRows(),
       screen: "today",
+      previousScreen: "today",
       selectedDate: "",
       selectedMapIndex: 0,
+      selectedStopId: "",
+      selectedFavoriteId: "",
+      favorites: getStoredFavoriteIds(),
       loading: true,
       message: "",
       query: "",
@@ -1383,6 +1543,43 @@
 
     function attr(value) {
       return escapeHtml(value);
+    }
+
+    function getStoredFavoriteIds() {
+      try {
+        const raw = localStorage.getItem(FAVORITE_STORAGE_KEY);
+        const parsed = JSON.parse(raw || "[]");
+        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveFavoriteIds() {
+      localStorage.setItem(FAVORITE_STORAGE_KEY, JSON.stringify(state.favorites));
+    }
+
+    function stopId(stop) {
+      return [stop.date || "", String(stop.order || ""), stop.time || "", stop.title || ""]
+        .join("__")
+        .replace(/\s+/g, "_");
+    }
+
+    function findStopById(id) {
+      return getStops().find((stop) => stopId(stop) === id) || null;
+    }
+
+    function isFavoriteStop(stop) {
+      return state.favorites.includes(stopId(stop));
+    }
+
+    function toggleFavorite(id) {
+      if (!id) return;
+      const exists = state.favorites.includes(id);
+      state.favorites = exists
+        ? state.favorites.filter((item) => item !== id)
+        : [...state.favorites, id];
+      saveFavoriteIds();
     }
 
     function normalizeFieldName(key) {
@@ -1478,14 +1675,15 @@
     function getStops() {
       return getNormalizedRows()
         .filter((row) => row.type === "itinerary" && isVisible(row))
-        .map((row) => ({
+        .map((row, index) => ({
           type: "itinerary",
           date: row.date || "",
-          order: Number(row.order || 999),
+          order: Number(row.order || index + 1),
           time: row.time || "",
           endTime: row.endTime || "",
           title: row.title || "未設定行程",
           category: row.category || "景點",
+          area: row.area || "",
           address: row.address || "",
           mapUrl: row.mapUrl || "",
           lat: row.lat || "",
@@ -1498,7 +1696,36 @@
           priority: row.priority || "",
           imageUrl: row.imageUrl || ""
         }))
-        .sort((a, b) => a.date.localeCompare(b.date) || a.order - b.order || a.time.localeCompare(b.time));
+        .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time) || a.order - b.order);
+    }
+
+    function favoriteId(place) {
+      return [place.title || "", place.area || "", place.category || "", place.address || ""]
+        .join("__")
+        .replace(/\s+/g, "_");
+    }
+
+    function getFavoritePlaces() {
+      return getNormalizedRows()
+        .filter((row) => row.type === "favorite" && isVisible(row))
+        .map((row) => ({
+          type: "favorite",
+          title: row.title || "未設定地點",
+          category: row.category || "景點",
+          area: row.area || "",
+          address: row.address || "",
+          mapUrl: row.mapUrl || "",
+          lat: row.lat || "",
+          lng: row.lng || "",
+          notice: row.notice || "",
+          priority: row.priority || "",
+          imageUrl: row.imageUrl || "",
+          visible: row.visible || "TRUE"
+        }));
+    }
+
+    function findFavoriteById(id) {
+      return getFavoritePlaces().find((place) => favoriteId(place) === id) || null;
     }
 
     function getDates() {
@@ -1506,7 +1733,13 @@
     }
 
     function getSettings() {
-      return getNormalizedRows().find((row) => row.type === "settings") || {};
+      const row = getNormalizedRows().find((item) => item.type === "settings") || {};
+      return {
+        ...row,
+        tripTitle: row.tripTitle || row.title || "旅遊行程",
+        tripSubtitle: row.tripSubtitle || "",
+        globalNotice: row.globalNotice || row.notice || ""
+      };
     }
 
     function getHotels() {
@@ -1514,11 +1747,12 @@
         .filter((row) => row.type === "hotel" && isVisible(row))
         .map((row) => ({
           type: "hotel",
-          hotelName: row.hotelName || "",
-          hotelAddress: row.hotelAddress || "",
+          hotelName: row.hotelName || row.title || "未設定住宿名稱",
+          hotelAddress: row.hotelAddress || row.address || "",
           hotelCheckin: row.hotelCheckin || "",
           hotelCheckout: row.hotelCheckout || "",
-          hotelMapUrl: row.hotelMapUrl || "",
+          hotelMapUrl: row.hotelMapUrl || row.mapUrl || "",
+          notice: row.notice || "",
           visible: row.visible || "TRUE"
         }));
     }
@@ -1588,7 +1822,8 @@
     }
 
     function getDailyNotice() {
-      return getNormalizedRows().find((row) => row.type === "daily_notice" && row.date === state.selectedDate && isVisible(row))?.dailyNotice || "";
+      const row = getNormalizedRows().find((item) => item.type === "daily_notice" && item.date === state.selectedDate && isVisible(item));
+      return row?.dailyNotice || row?.notice || "";
     }
 
     function getDestinationQuery(place) {
@@ -1714,6 +1949,7 @@
     }
 
     function timelineStopHtml(stop) {
+      const id = stopId(stop);
       const time = stop.time || "--:--";
       const endTime = stop.endTime || "";
       const category = stop.category || "景點";
@@ -1725,7 +1961,7 @@
       const notice = stop.notice ? `<div class="timeline-note warning">${escapeHtml(stop.notice)}</div>` : "";
 
       return `
-        <article class="timeline-item">
+        <article class="timeline-item" data-action="open-stop" data-stop-id="${attr(id)}" tabindex="0" role="button" aria-label="查看 ${attr(stop.title)} 詳情">
           <div class="timeline-time">
             <strong>${escapeHtml(time)}</strong>
             ${endTime ? `<span>${escapeHtml(endTime)}</span>` : ""}
@@ -1749,6 +1985,7 @@
     }
 
     function todayListItemHtml(stop) {
+      const id = stopId(stop);
       const time = `${stop.time || "--:--"}${stop.endTime ? ` – ${stop.endTime}` : ""}`;
       const category = stop.category || "景點";
       const duration = stop.duration ? `<span>${escapeHtml(stop.duration)}</span>` : "";
@@ -1757,7 +1994,7 @@
       const notice = stop.notice ? `<div class="today-alert">${escapeHtml(stop.notice)}</div>` : "";
 
       return `
-        <article class="today-item">
+        <article class="today-item" data-action="open-stop" data-stop-id="${attr(id)}" tabindex="0" role="button" aria-label="查看 ${attr(stop.title)} 詳情">
           ${thumbnailHtml(stop)}
           <div class="today-body">
             <h3 class="today-title">${escapeHtml(stop.title)}</h3>
@@ -1770,6 +2007,7 @@
             ${address}
             ${notice}
           </div>
+          <div class="today-tail">›</div>
         </article>
       `;
     }
@@ -2037,6 +2275,215 @@
       `;
     }
 
+    function detailImageHtml(stop) {
+      const fallback = placeholderHtml(stop.category, Boolean(stop.imageUrl));
+      const img = stop.imageUrl
+        ? `<img src="${attr(stop.imageUrl)}" alt="${attr(stop.title)}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');" />${fallback}`
+        : fallback;
+
+      return `<div class="detail-image">${img}</div>`;
+    }
+
+    function detailPageHtml() {
+      const stop = findStopById(state.selectedStopId);
+      if (!stop) {
+        return `
+          ${topHtml("行程詳情")}
+          <div class="page content">
+            <section class="favorite-empty">
+              <strong>找不到這筆行程</strong>
+              可能資料已更新，請返回行程列表重新選擇
+            </section>
+          </div>
+        `;
+      }
+
+      const time = `${formatLongDate(stop.date)}｜${stop.time || "--:--"}${stop.endTime ? ` – ${stop.endTime}` : ""}`;
+      const statusBadge = stop.status ? `<span class="badge ${badgeClass(stop.status)}">${escapeHtml(stop.status)}</span>` : "";
+      const durationBadge = stop.duration ? `<span class="badge">${escapeHtml(stop.duration)}</span>` : "";
+
+      return `
+        <div class="page">
+          <section class="detail-hero">
+            ${detailImageHtml(stop)}
+            <div class="detail-body">
+              <div class="detail-top-actions">
+                <button class="back-btn" data-action="back-from-detail" type="button">← 返回</button>
+              </div>
+              <h1 class="detail-title">${escapeHtml(stop.title)}</h1>
+              <div class="detail-meta">
+                <span class="badge ${badgeClass(stop.category)}">${escapeHtml(stop.category || "景點")}</span>
+                ${statusBadge}
+                ${durationBadge}
+              </div>
+
+              <div class="detail-section">
+                <div class="detail-label">時間</div>
+                <div class="detail-text">${escapeHtml(time)}</div>
+              </div>
+
+              ${stop.address ? `
+                <div class="detail-section">
+                  <div class="detail-label">地址</div>
+                  <div class="detail-text">${escapeHtml(stop.address)}</div>
+                </div>
+              ` : ""}
+
+              ${stop.transitNote ? `
+                <div class="detail-section">
+                  <div class="detail-label">交通備註</div>
+                  <div class="detail-text">${escapeHtml(stop.transitNote)}</div>
+                </div>
+              ` : ""}
+
+              ${stop.notice ? `
+                <div class="detail-section">
+                  <div class="detail-label">提醒</div>
+                  <div class="detail-text">${escapeHtml(stop.notice)}</div>
+                </div>
+              ` : ""}
+
+              <div class="detail-actions">
+                <a class="card-button outline" href="${attr(buildMapsSearchUrl(stop))}" target="_blank" rel="noreferrer">查看地點</a>
+                <a class="card-button filled" href="${attr(buildCurrentLocationDirectionsUrl(stop))}" target="_blank" rel="noreferrer">現在前往</a>
+              </div>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    function favoriteThumbnailHtml(place) {
+      const icon = categoryIcon(place.category);
+      const fallback = placeholderHtml(place.category, Boolean(place.imageUrl));
+      const img = place.imageUrl
+        ? `<img src="${attr(place.imageUrl)}" alt="${attr(place.title)}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');" />${fallback}`
+        : fallback;
+
+      return `
+        <div class="thumb favorite-thumb">
+          ${img}
+          <span class="thumb-icon">${escapeHtml(icon)}</span>
+        </div>
+      `;
+    }
+
+    function favoritePlaceDetailPageHtml() {
+      const place = findFavoriteById(state.selectedFavoriteId);
+      if (!place) {
+        return `
+          ${topHtml("收藏詳情")}
+          <div class="page content">
+            <section class="favorite-empty">
+              <strong>找不到這筆收藏</strong>
+              可能資料已更新，請返回收藏列表重新選擇
+            </section>
+          </div>
+        `;
+      }
+
+      const area = place.area ? `<span class="badge">${escapeHtml(place.area)}</span>` : "";
+      const priority = place.priority ? `<span class="badge">${escapeHtml(place.priority)}</span>` : "";
+
+      return `
+        <div class="page">
+          <section class="detail-hero">
+            ${detailImageHtml(place)}
+            <div class="detail-body">
+              <div class="detail-top-actions">
+                <button class="back-btn" data-action="back-from-detail" type="button">← 返回</button>
+              </div>
+              <h1 class="detail-title">${escapeHtml(place.title)}</h1>
+              <div class="detail-meta">
+                <span class="badge ${badgeClass(place.category)}">${escapeHtml(place.category || "景點")}</span>
+                ${area}
+                ${priority}
+              </div>
+
+              ${place.area ? `
+                <div class="detail-section">
+                  <div class="detail-label">區域</div>
+                  <div class="detail-text">${escapeHtml(place.area)}</div>
+                </div>
+              ` : ""}
+
+              ${place.address ? `
+                <div class="detail-section">
+                  <div class="detail-label">地址</div>
+                  <div class="detail-text">${escapeHtml(place.address)}</div>
+                </div>
+              ` : ""}
+
+              ${place.notice ? `
+                <div class="detail-section">
+                  <div class="detail-label">備註</div>
+                  <div class="detail-text">${escapeHtml(place.notice)}</div>
+                </div>
+              ` : ""}
+
+              <div class="detail-actions">
+                <a class="card-button outline" href="${attr(buildMapsSearchUrl(place))}" target="_blank" rel="noreferrer">查看地點</a>
+                <a class="card-button filled" href="${attr(buildCurrentLocationDirectionsUrl(place))}" target="_blank" rel="noreferrer">現在前往</a>
+              </div>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    function favoriteListItemHtml(place) {
+      const id = favoriteId(place);
+      const area = place.area ? `<span>${escapeHtml(place.area)}</span>` : "";
+      const priority = place.priority ? `<span>${escapeHtml(place.priority)}</span>` : "";
+      const address = place.address ? `<div class="today-address">${escapeHtml(place.address)}</div>` : "";
+      const notice = place.notice ? `<div class="today-alert">${escapeHtml(place.notice)}</div>` : "";
+
+      return `
+        <article class="today-item" data-action="open-favorite" data-favorite-id="${attr(id)}" tabindex="0" role="button" aria-label="查看 ${attr(place.title)} 詳情">
+          ${favoriteThumbnailHtml(place)}
+          <div class="today-body">
+            <h3 class="today-title">${escapeHtml(place.title)}</h3>
+            <div class="today-meta">
+              <span>${escapeHtml(place.category || "景點")}</span>
+              ${area}
+              ${priority}
+            </div>
+            ${address}
+            ${notice}
+          </div>
+          <div class="today-tail">›</div>
+        </article>
+      `;
+    }
+
+    function favoritesPageHtml() {
+      const favoritePlaces = getFavoritePlaces();
+
+      return `
+        ${topHtml("收藏")}
+        <div class="page content">
+          ${messageHtml()}
+          <section class="section notice">
+            收藏區只放還沒排進正式行程、但想先存起來的候選景點、餐廳或購物點。要新增收藏，請在 Google Sheet 新增一列並把「類型」填成「收藏」。
+          </section>
+          <div class="section-title">
+            <h2>候選地點</h2>
+            <span>${escapeHtml(String(favoritePlaces.length))} 個地點</span>
+          </div>
+          ${favoritePlaces.length ? `
+            <section class="today-list">
+              ${favoritePlaces.map(favoriteListItemHtml).join("")}
+            </section>
+          ` : `
+            <section class="favorite-empty">
+              <strong>還沒有收藏候選</strong>
+              在 Google Sheet 新增「類型 = 收藏」的資料後，這裡會自動顯示
+            </section>
+          `}
+        </div>
+      `;
+    }
+
     function searchPageHtml() {
       const stops = getStops();
       const categories = ["全部", ...Array.from(new Set(stops.map((stop) => stop.category).filter(Boolean)))];
@@ -2076,6 +2523,7 @@
       if (key === "plan") return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12"></path><path d="M8 12h12"></path><path d="M8 18h12"></path><path d="M4.5 6h.01"></path><path d="M4.5 12h.01"></path><path d="M4.5 18h.01"></path></svg>`;
       if (key === "map") return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5.5 15 3l5.5 2.5v13L15 21l-6-2.5L3.5 21v-13L9 5.5Z"></path><path d="M9 5.5v13"></path><path d="M15 3v18"></path><path d="M12 11.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2Z"></path></svg>`;
       if (key === "info") return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11.5V8.8A2.8 2.8 0 0 1 6.3 6h11.4a2.8 2.8 0 0 1 2.8 2.8v2.7"></path><path d="M3.5 11.5h17v5a1.5 1.5 0 0 1-1.5 1.5h-1.5v-3h-11v3H5A1.5 1.5 0 0 1 3.5 16.5v-5Z"></path><path d="M6.5 18v1.5"></path><path d="M17.5 18v1.5"></path></svg>`;
+      if (key === "favorites") return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.4-7.5-10.1A4.2 4.2 0 0 1 12 7.8a4.2 4.2 0 0 1 7.5 2.6c0 5.7-7.5 10.1-7.5 10.1Z"></path></svg>`;
       return `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg>`;
     }
 
@@ -2085,7 +2533,7 @@
         ["plan", "行程"],
         ["map", "地圖"],
         ["info", "住宿"],
-        ["search", "搜尋"]
+        ["favorites", "收藏"]
       ];
 
       return `
@@ -2122,9 +2570,11 @@
       if (state.screen === "plan") html = planPageHtml();
       if (state.screen === "map") html = mapPageHtml();
       if (state.screen === "info") html = infoPageHtml();
-      if (state.screen === "search") html = searchPageHtml();
+      if (state.screen === "favorites") html = favoritesPageHtml();
+      if (state.screen === "detail") html = detailPageHtml();
+      if (state.screen === "favorite-detail") html = favoritePlaceDetailPageHtml();
 
-      app.innerHTML = html + bottomNavHtml();
+      app.innerHTML = html + (["detail", "favorite-detail"].includes(state.screen) ? "" : bottomNavHtml());
       bindEvents();
     }
 
@@ -2134,7 +2584,10 @@
 
         if (action === "set-screen") {
           element.addEventListener("click", () => {
+            state.previousScreen = element.dataset.screen;
             state.screen = element.dataset.screen;
+            state.selectedStopId = "";
+            state.selectedFavoriteId = "";
             render();
             window.scrollTo({ top: 0, behavior: "smooth" });
           });
@@ -2185,6 +2638,38 @@
             render();
           });
         }
+        if (action === "open-stop") {
+          element.addEventListener("click", () => {
+            state.previousScreen = state.screen === "detail" ? state.previousScreen : state.screen;
+            state.selectedStopId = element.dataset.stopId || "";
+            state.selectedFavoriteId = "";
+            state.screen = "detail";
+            render();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          });
+        }
+
+        if (action === "open-favorite") {
+          element.addEventListener("click", () => {
+            state.previousScreen = state.screen === "favorite-detail" ? state.previousScreen : state.screen;
+            state.selectedFavoriteId = element.dataset.favoriteId || "";
+            state.selectedStopId = "";
+            state.screen = "favorite-detail";
+            render();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          });
+        }
+
+        if (action === "back-from-detail") {
+          element.addEventListener("click", () => {
+            state.screen = state.previousScreen || "today";
+            state.selectedStopId = "";
+            state.selectedFavoriteId = "";
+            render();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          });
+        }
+
       });
     }
 
