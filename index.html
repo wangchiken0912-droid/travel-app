@@ -1446,6 +1446,26 @@
       content: "－";
     }
 
+    .sync-hint {
+      margin-top: 6px;
+      color: var(--light);
+      font-size: 11px;
+      font-weight: 750;
+      line-height: 1.45;
+    }
+
+    .text-action-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .mini-action[disabled] {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
     .bottom-nav {
       position: fixed;
       inset: auto 0 0;
@@ -1692,6 +1712,7 @@
       favorites: getStoredFavoriteIds(),
       loading: true,
       message: "",
+      syncStatus: "",
       query: "",
       category: "全部"
     };
@@ -2298,15 +2319,19 @@
     }
 
     function messageHtml() {
-      if (!state.message) return "";
-      return `<div class="status-message">${escapeHtml(state.message)}</div>`;
+      if (!state.message && !state.syncStatus) return "";
+      return `
+        <div class="status-message">
+          ${state.message ? `<div>${escapeHtml(state.message)}</div>` : ""}
+          ${state.syncStatus ? `<div class="sync-hint">${escapeHtml(state.syncStatus)}</div>` : ""}
+        </div>
+      `;
     }
 
     function todayPageHtml() {
       const settings = getSettings();
       const dates = getDates();
       const dayStops = getDayStops();
-      const nextStop = getNextStop(dayStops);
       const dailyNotice = getDailyNotice();
       const firstTime = dayStops[0]?.time || "--";
       const realToday = todayISO();
@@ -2314,34 +2339,6 @@
       const displayDateLabel = state.selectedDate === realToday
         ? "顯示今日行程"
         : `顯示 ${formatDateLabel(state.selectedDate)} 行程`;
-
-      const nextBlock = nextStop ? `
-        <section class="section next-card">
-          <div class="next-card-inner">
-            <div class="eyebrow">下一站</div>
-            <h2 class="next-title">${escapeHtml(nextStop.title)}</h2>
-            <div class="next-meta">
-              <span class="pill primary">${escapeHtml(nextStop.time || "--:--")}${nextStop.endTime ? ` – ${escapeHtml(nextStop.endTime)}` : ""}</span>
-              <span class="pill">${escapeHtml(nextStop.category)}</span>
-              ${nextStop.duration ? `<span class="pill">${escapeHtml(nextStop.duration)}</span>` : ""}
-            </div>
-            ${nextStop.address ? `<div class="next-address">${escapeHtml(nextStop.address)}</div>` : ""}
-            ${nextStop.transitNote ? `<div class="next-address">${escapeHtml(nextStop.transitNote)}</div>` : ""}
-            <div class="action-grid">
-              <a class="secondary-btn" href="${attr(buildMapsSearchUrl(nextStop))}" target="_blank" rel="noreferrer">查看地點</a>
-              <a class="primary-btn" href="${attr(buildCurrentLocationDirectionsUrl(nextStop))}" target="_blank" rel="noreferrer">現在前往</a>
-            </div>
-          </div>
-        </section>
-      ` : `
-        <section class="section next-card">
-          <div class="next-card-inner">
-            <div class="eyebrow">下一站</div>
-            <h2 class="next-title">尚未設定行程</h2>
-            <p class="next-address">選擇其他日期，或在雲端表格新增今日行程</p>
-          </div>
-        </section>
-      `;
 
       return `
         ${topHtml(settings.tripTitle || "旅遊行程")}
@@ -2360,8 +2357,6 @@
             </div>
           </section>
 
-          ${nextBlock}
-
           ${dailyNotice ? `<section class="section notice">${escapeHtml(dailyNotice)}</section>` : ""}
 
           <div class="section-title">
@@ -2369,7 +2364,10 @@
               <h2>今日清單</h2>
               <span>${escapeHtml(formatDateLabel(state.selectedDate))}</span>
             </div>
-            <button class="mini-action primary" data-action="add-itinerary" type="button">＋新增</button>
+            <div class="text-action-row">
+              <button class="mini-action" data-action="export-day-text" type="button">匯出文字</button>
+              <button class="mini-action primary" data-action="add-itinerary" type="button">＋新增</button>
+            </div>
           </div>
           ${stopListHtml(dayStops, "today")}
         </div>
@@ -2536,15 +2534,159 @@
       };
     }
 
-    async function sendWrite(action, data) {
-      if (!isWriteReady()) {
-        state.message = "尚未設定 Google Apps Script 寫入端";
+    function makeTempId(type) {
+      const prefix = type === "收藏" ? "FAV" : "TRIP";
+      return `${prefix}-LOCAL-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    }
+
+    function writeDataToInternalRow(data, fallbackId = "") {
+      const typeValue = data.type || data.類型 || "行程";
+      return normalizeRow({
+        id: data.id || data.ID || fallbackId || makeTempId(typeValue),
+        type: typeValue,
+        date: data.date || data.日期 || "",
+        time: data.time || data.開始時間 || "",
+        endTime: data.endTime || data.結束時間 || "",
+        title: data.title || data.標題 || "",
+        category: data.category || data.分類 || "景點",
+        area: data.area || data.區域 || "",
+        address: data.address || data.地址 || "",
+        notice: data.notice || data.備註 || "",
+        imageUrl: data.imageUrl || data.圖片連結 || "",
+        priority: data.priority || data.重要度 || "",
+        visible: "TRUE",
+        updatedAt: new Date().toISOString().slice(0, 19).replace("T", " ")
+      });
+    }
+
+    function saveRowsCache() {
+      try {
+        localStorage.setItem("trip-html:google-sheet-live-v1", JSON.stringify(state.rows));
+      } catch (error) {}
+    }
+
+    function applyOptimisticChange(action, data) {
+      const normalized = normalizeWriteData(data);
+      const id = normalized.ID || normalized.id || data.id || data.ID || "";
+      const internal = writeDataToInternalRow(data, id);
+
+      if (action === "delete") {
+        state.rows = state.rows.filter((row) => normalizeRow(row).id !== id);
+      } else if (action === "update") {
+        let found = false;
+        state.rows = state.rows.map((row) => {
+          const normalizedRow = normalizeRow(row);
+          if (normalizedRow.id === id) {
+            found = true;
+            return { ...normalizedRow, ...internal, id };
+          }
+          return row;
+        });
+        if (!found) state.rows = [...state.rows, internal];
+      } else if (action === "create") {
+        state.rows = [...state.rows, internal];
+      }
+
+      saveRowsCache();
+    }
+
+    function returnAfterWrite(data) {
+      const returnScreen = state.formReturnScreen || state.previousScreen || "";
+      if (["detail", "favorite-detail"].includes(returnScreen)) {
+        state.screen = returnScreen;
+      } else if (returnScreen) {
+        state.screen = returnScreen;
+      } else {
+        state.screen = data.type === "收藏" || data.類型 === "收藏" ? "favorites" : "today";
+      }
+
+      state.formMode = "";
+      state.formType = "";
+      state.formId = "";
+      state.formReturnScreen = "";
+    }
+
+    function markFavoriteAsJoined(place) {
+      const existingNotice = place.notice || "";
+      const joinedNotice = existingNotice.includes("已加入行程")
+        ? existingNotice
+        : `${existingNotice}${existingNotice ? "｜" : ""}已加入行程`;
+      return {
+        ...place,
+        type: "收藏",
+        priority: "已加入",
+        notice: joinedNotice
+      };
+    }
+
+    async function sendConvertFavorite(payload) {
+      const place = findFavoriteById(state.formId);
+      if (!place) {
+        state.message = "找不到這筆收藏";
         render();
         return;
       }
 
-      state.message = "正在送出變更";
+      const itineraryPayload = { ...payload, id: "", type: "行程" };
+      const markedFavorite = markFavoriteAsJoined(place);
+
+      applyOptimisticChange("create", itineraryPayload);
+      applyOptimisticChange("update", markedFavorite);
+
+      state.message = "已先加入本機行程";
+      state.syncStatus = "正在同步 Google Sheet，收藏已標記為已加入";
+      returnAfterWrite(itineraryPayload);
       render();
+
+      if (!isWriteReady()) {
+        state.syncStatus = "尚未設定 Google Apps Script 寫入端，本機暫存不會寫回 Google Sheet";
+        render();
+        return;
+      }
+
+      try {
+        await fetch(WRITE_WEB_APP_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(actionPayload("create", normalizeWriteData(itineraryPayload)))
+        });
+
+        await fetch(WRITE_WEB_APP_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(actionPayload("update", normalizeWriteData(markedFavorite)))
+        });
+
+        state.message = "已送出";
+        state.syncStatus = "等待 Google Sheet 發佈資料同步";
+        render();
+        window.setTimeout(() => loadRows(true), 2200);
+      } catch (error) {
+        state.message = "同步失敗";
+        state.syncStatus = "已保留在本機暫存，請網路穩定後再試";
+        render();
+      }
+    }
+
+    async function sendWrite(action, data) {
+      if (action === "create" && !data.id && !data.ID) {
+        data = { ...data, id: makeTempId(data.type || data.類型 || "行程") };
+      }
+
+      applyOptimisticChange(action, data);
+
+      state.message = action === "delete" ? "已先從本機移除" : "已先在本機顯示";
+      state.syncStatus = "正在同步 Google Sheet";
+      returnAfterWrite(data);
+      render();
+
+      if (!isWriteReady()) {
+        state.syncStatus = "尚未設定 Google Apps Script 寫入端，本機暫存不會寫回 Google Sheet";
+        render();
+        return;
+      }
 
       const payload = actionPayload(action, normalizeWriteData(data));
 
@@ -2556,18 +2698,14 @@
           body: JSON.stringify(payload)
         });
 
-        state.message = "已送出，稍後同步最新資料";
-        state.screen = data.類型 === "收藏" || data.type === "收藏" ? "favorites" : "today";
-        state.selectedStopId = "";
-        state.selectedFavoriteId = "";
-        state.formMode = "";
-        state.formType = "";
-        state.formId = "";
+        state.message = "已送出";
+        state.syncStatus = "等待 Google Sheet 發佈資料同步";
         render();
 
-        window.setTimeout(() => loadRows(true), 1800);
+        window.setTimeout(() => loadRows(true), 2200);
       } catch (error) {
-        state.message = "送出失敗，請檢查網路或 Apps Script 設定";
+        state.message = "同步失敗";
+        state.syncStatus = "已保留在本機暫存，請網路穩定後再試";
         render();
       }
     }
@@ -2701,6 +2839,7 @@
       }
 
       const area = place.area ? `<span class="badge">${escapeHtml(place.area)}</span>` : "";
+      const isJoined = (place.priority || "").includes("已加入") || (place.notice || "").includes("已加入行程");
       const priority = place.priority ? `<span class="badge">${escapeHtml(place.priority)}</span>` : "";
 
       return `
@@ -2740,11 +2879,16 @@
               ` : ""}
 
               <div class="inline-actions">
-                <button class="mini-action primary" data-action="convert-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">加入行程</button>
+                ${isJoined
+                  ? `<button class="mini-action primary" type="button" disabled>已加入行程</button>`
+                  : `<button class="mini-action primary" data-action="convert-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">加入行程</button>`}
               </div>
               <div class="detail-actions">
-                <a class="card-button outline" href="${attr(buildMapsSearchUrl(place))}" target="_blank" rel="noreferrer">查看地點</a>
+                <button class="card-button outline" data-action="copy-address" data-copy="${attr(getDestinationQuery(place))}" type="button">複製地址</button>
                 <a class="card-button filled" href="${attr(buildCurrentLocationDirectionsUrl(place))}" target="_blank" rel="noreferrer">現在前往</a>
+              </div>
+              <div class="inline-actions">
+                <a class="mini-action" href="${attr(buildMapsSearchUrl(place))}" target="_blank" rel="noreferrer">查看地點</a>
               </div>
               <div class="inline-actions">
                 <button class="mini-action" data-action="edit-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">修改</button>
@@ -2988,6 +3132,42 @@
       `;
     }
 
+    function buildDayText() {
+      const stops = getDayStops();
+      const settings = getSettings();
+      const lines = [];
+      lines.push(`${settings.tripTitle || "旅遊行程"}`);
+      lines.push(`${formatLongDate(state.selectedDate)}`);
+      lines.push("");
+
+      if (!stops.length) {
+        lines.push("這天尚未設定行程");
+        return lines.join("\n");
+      }
+
+      stops.forEach((stop, index) => {
+        const time = `${stop.time || "--:--"}${stop.endTime ? `–${stop.endTime}` : ""}`;
+        lines.push(`${index + 1}. ${time}｜${stop.title}`);
+        if (stop.category) lines.push(`分類：${stop.category}`);
+        if (stop.address) lines.push(`地址：${stop.address}`);
+        if (stop.notice || stop.transitNote) lines.push(`備註：${stop.notice || stop.transitNote}`);
+        lines.push("");
+      });
+
+      return lines.join("\n").trim();
+    }
+
+    async function copyTextToClipboard(textValue, successMessage = "已複製") {
+      try {
+        await navigator.clipboard.writeText(textValue);
+        state.message = successMessage;
+        state.syncStatus = "";
+        render();
+      } catch (error) {
+        window.prompt("請手動複製以下內容", textValue);
+      }
+    }
+
     function render() {
       ensureSelectedDate();
 
@@ -3175,8 +3355,25 @@
               priority: data.priority || ""
             };
 
-            const actionName = state.formMode === "edit" || state.formMode === "convert" ? "update" : "create";
+            if (state.formMode === "convert") {
+              sendConvertFavorite(payload);
+              return;
+            }
+
+            const actionName = state.formMode === "edit" ? "update" : "create";
             sendWrite(actionName, payload);
+          });
+        }
+
+        if (action === "copy-address") {
+          element.addEventListener("click", () => {
+            copyTextToClipboard(element.dataset.copy || "", "地址已複製");
+          });
+        }
+
+        if (action === "export-day-text") {
+          element.addEventListener("click", () => {
+            copyTextToClipboard(buildDayText(), "當日行程文字已複製");
           });
         }
 
@@ -3200,7 +3397,7 @@
 
     async function loadRows(force = false) {
       state.loading = true;
-      state.message = force ? "正在更新最新行程資料" : "";
+      state.message = force ? "正在同步 Google Sheet 最新資料" : "";
       render();
 
       try {
@@ -3219,7 +3416,7 @@
 
         state.rows = parsed;
         localStorage.setItem("trip-html:google-sheet-live-v1", JSON.stringify(parsed));
-        state.message = force ? "行程已更新" : "";
+        state.message = force ? "已同步最新資料" : "";
       } catch (error) {
         const cached = localStorage.getItem("trip-html:google-sheet-live-v1");
         if (cached) {
@@ -3234,9 +3431,9 @@
         ensureSelectedDate();
         render();
 
-        if (state.message === "行程已更新") {
+        if (state.message === "已同步最新資料") {
           setTimeout(() => {
-            if (state.message === "行程已更新") {
+            if (state.message === "已同步最新資料") {
               state.message = "";
               render();
             }
