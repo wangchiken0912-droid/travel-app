@@ -1,4 +1,4 @@
-const CACHE_NAME = "trip-pwa-money-v2";
+const CACHE_NAME = "trip-pwa-money-v7";
 const APP_SHELL = [
   "./",
   "./index.html",
