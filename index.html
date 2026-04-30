@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>大阪・京都行程</title>
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#FFFFFF" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
-  <!-- UI version: timeline + white iOS layout + PWA + three-person expense tracking -->
+  <!-- UI version: Osaka theme - 大阪都會霓虹白底版 -->
   <style>
     :root {
       --bg: #ffffff;
@@ -1775,6 +1775,24 @@
       white-space: nowrap;
     }
 
+    .person-stat-value span {
+      display: block;
+      margin-top: 3px;
+      color: var(--light);
+      font-size: 10.5px;
+      font-weight: 820;
+      line-height: 1.25;
+    }
+
+    .person-stat-value .person-stat-mini {
+      margin-top: 0;
+      margin-bottom: 3px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+    }
+
     .expense-record-tags-simple {
       display: flex;
       flex-wrap: wrap;
@@ -2129,6 +2147,375 @@
         width: calc(100vw - 40px);
         max-width: calc(100vw - 40px);
       }
+    }
+
+
+    /* Osaka theme override: 大阪都會霓虹白底版 */
+:root {
+      --bg: #FFFFFF;
+      --card: #FFFFFF;
+      --card-soft: #F1F4F8;
+      --text: #1F2933;
+      --muted: #667085;
+      --light: #98A2B3;
+      --line: #E4E7EC;
+      --line-soft: #EDF0F4;
+      --primary: #2F80ED;
+      --primary-dark: #155EEF;
+      --primary-soft: #EAF3FF;
+      --warning: #FF6B6B;
+      --warning-soft: #FFF1F2;
+      --danger: #E5484D;
+      --danger-soft: #FFF1F2;
+      --shadow: 0 18px 42px rgba(16, 24, 40, 0.08);
+      --shadow-soft: 0 8px 24px rgba(16, 24, 40, 0.055);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      z-index: 999;
+      background: linear-gradient(90deg, #2F80ED 0%, #FF5A5F 50%, #7C3AED 100%);
+      pointer-events: none;
+    }
+
+    .app {
+      background: #FFFFFF;
+    }
+
+    .top,
+    .date-rail {
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom-color: rgba(228, 231, 236, 0.9);
+    }
+
+    .primary-btn,
+    .date-chip.active,
+    .expense-mini-tab.active,
+    .mini-action.primary {
+      border-color: #2F80ED;
+      background: linear-gradient(135deg, #2F80ED 0%, #155EEF 100%);
+      color: #fff;
+      box-shadow: 0 10px 22px rgba(47,128,237,0.20);
+    }
+
+    .ghost-btn,
+    .edit-btn.active,
+    .expense-settings-summary {
+      color: #155EEF;
+      border-color: rgba(47,128,237,0.20);
+      background: #FFFFFF;
+    }
+
+    .nav-btn.active {
+      background: linear-gradient(135deg, rgba(47,128,237,0.12), rgba(255,90,95,0.10));
+      color: #155EEF;
+    }
+
+    .nav-btn.active .nav-icon {
+      background: linear-gradient(135deg, #2F80ED 0%, #FF5A5F 100%);
+      box-shadow: 0 10px 20px rgba(47,128,237,0.24);
+    }
+
+    .expense-entry-panel,
+    .expense-simple-panel,
+    .hero,
+    .stop-card,
+    .detail-card,
+    .hotel-card,
+    .favorite-card {
+      border-color: rgba(228,231,236,0.9);
+      background: #FFFFFF;
+    }
+
+    .expense-stat-value,
+    .person-stat-value,
+    .expense-record-amount-simple {
+      color: #1D4ED8;
+    }
+
+    .expense-pill-simple,
+    .tag,
+    .category-pill {
+      background: rgba(47,128,237,0.08);
+      color: #155EEF;
+    }
+
+    .notice {
+      border-color: rgba(47,128,237,0.16);
+      background: #FFFFFF;
+      color: #174EA6;
+      box-shadow: inset 3px 0 0 rgba(47,128,237,0.75), var(--shadow-soft);
+    }
+
+
+
+
+    /* Expense visual input variants - scoped to expense page only */
+    .expense-add-osaka {
+      --accent-red: #FF5A5F;
+      --accent-gold: #C8A96B;
+    }
+
+    /* Expense visual input variants */
+    .expense-add-visual .expense-entry-panel {
+      border-top: 0;
+      border-bottom: 1px solid var(--line-soft);
+      padding-top: 6px;
+    }
+
+    .expense-add-visual .expense-entry-head {
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .expense-add-visual .expense-entry-title {
+      font-size: 24px;
+      letter-spacing: -0.04em;
+    }
+
+    .expense-add-visual .expense-entry-sub {
+      margin-top: 6px;
+      max-width: 260px;
+    }
+
+    .expense-form-visual {
+      display: grid;
+      gap: 18px;
+    }
+
+    .visual-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 9px;
+      color: var(--light);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .visual-amount-panel {
+      position: relative;
+      padding: 0 0 16px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .visual-amount-input {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      font-size: 48px;
+      line-height: 1.04;
+      font-weight: 960;
+      letter-spacing: -0.06em;
+      font-variant-numeric: tabular-nums;
+      padding: 0;
+    }
+
+    .visual-amount-input::placeholder {
+      color: #d5d9df;
+    }
+
+    .visual-amount-note {
+      margin-top: 8px;
+      color: var(--light);
+      font-size: 11.5px;
+      font-weight: 760;
+      line-height: 1.45;
+    }
+
+    .visual-block {
+      display: grid;
+      gap: 10px;
+    }
+
+    .visual-choice-row,
+    .visual-category-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .visual-category-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .visual-choice {
+      position: relative;
+      display: inline-flex;
+      min-width: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .visual-choice input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .visual-choice span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      padding: 0 14px;
+      font-size: 13px;
+      font-weight: 920;
+      white-space: nowrap;
+      transition: transform .16s ease, border-color .16s ease, color .16s ease, background .16s ease, box-shadow .16s ease;
+    }
+
+    .visual-choice input:checked + span {
+      border-color: var(--primary);
+      color: var(--primary-dark);
+      background: var(--primary-soft);
+      box-shadow: 0 9px 20px rgba(47, 128, 237, .08);
+    }
+
+    .visual-category-grid .visual-choice span {
+      width: 100%;
+      min-height: 54px;
+      flex-direction: column;
+      border-radius: 18px;
+      padding: 9px 7px;
+      font-size: 12px;
+      line-height: 1.15;
+    }
+
+    .visual-category-mark {
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: var(--card-soft);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 950;
+    }
+
+    .visual-choice input:checked + span .visual-category-mark {
+      background: #fff;
+      color: var(--primary);
+    }
+
+    .visual-secondary-fields {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 10px;
+    }
+
+    .expense-add-visual .form-label {
+      font-size: 11px;
+      letter-spacing: .02em;
+    }
+
+    .expense-add-visual .form-field {
+      min-height: 44px;
+    }
+
+    .expense-add-visual .primary-btn {
+      min-height: 52px;
+      font-size: 15px;
+      border-radius: 18px;
+    }
+
+    .visual-cash-hint {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      min-height: 28px;
+      border-radius: 999px;
+      background: rgba(200, 169, 107, .12);
+      color: var(--accent-gold);
+      padding: 0 11px;
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    @media (max-width: 390px) {
+      .visual-category-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .visual-secondary-fields {
+        grid-template-columns: 1fr;
+      }
+
+      .visual-amount-input {
+        font-size: 42px;
+      }
+    }
+
+
+    .expense-add-osaka .expense-entry-panel {
+      position: relative;
+    }
+
+    .expense-add-osaka .expense-entry-panel::before {
+      content: "";
+      display: block;
+      height: 3px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+      background: linear-gradient(90deg, var(--primary) 0%, var(--accent-red) 50%, var(--accent-gold) 100%);
+    }
+
+    .expense-add-osaka .visual-amount-panel {
+      border: 1px solid rgba(47,128,237,.16);
+      border-radius: 24px;
+      padding: 18px;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(255,90,95,.11), transparent 30%),
+        radial-gradient(circle at 0% 0%, rgba(47,128,237,.12), transparent 34%),
+        #fff;
+      box-shadow: 0 14px 36px rgba(31,31,31,.045);
+    }
+
+    .expense-add-osaka .visual-amount-input {
+      color: #172033;
+    }
+
+    .expense-add-osaka .visual-choice input:checked + span {
+      border-color: var(--primary);
+      background: linear-gradient(135deg, rgba(47,128,237,.13), rgba(255,90,95,.08));
+      color: var(--primary-dark);
+    }
+
+    .expense-add-osaka .visual-category-grid .visual-choice input:checked + span {
+      border-color: rgba(47,128,237,.55);
+      box-shadow: 0 12px 26px rgba(47,128,237,.10);
+    }
+
+    .expense-add-osaka .primary-btn {
+      background: linear-gradient(135deg, var(--primary), #5b7cfa 58%, var(--accent-red));
+      box-shadow: 0 14px 28px rgba(47,128,237,.18);
+    }
+
+
+    .money-page-simple .person-stat-value.cash-main {
+      color: var(--text);
+    }
+
+    .money-page-simple .person-stat-value.cash-main span {
+      color: var(--light);
     }
 
   </style>
@@ -3783,17 +4170,17 @@
       const travelerStats = getTravelerExpenseStats(scopedExpenses);
       const defaultDate = state.selectedDate || todayISO();
       const scopeLabel = state.moneyScope === "day" ? "當日" : "全旅程";
+      const categories = [["餐飲", "食"], ["交通", "移"], ["購物", "買"], ["門票", "票"], ["住宿", "宿"], ["伴手禮", "禮"], ["其他", "其"]];
 
       return `
         ${topHtml("花費")}
-        <div class="page content money-page-simple">
+        <div class="page content money-page-simple expense-add-visual expense-add-osaka">
           ${messageHtml()}
 
           <section class="section expense-entry-panel">
             <div class="expense-entry-head">
               <div>
                 <h2 class="expense-entry-title">新增花費</h2>
-                <div class="expense-entry-sub">打開花費頁先記帳，再看每個人的支出跟日幣現金</div>
               </div>
               <details class="expense-settings-pop" ${state.moneySettingsOpen ? "open" : ""}>
                 <summary class="expense-settings-summary">設定</summary>
@@ -3819,48 +4206,59 @@
               </details>
             </div>
 
-            <form class="form-grid-full" data-action="add-expense">
-              <div class="form-row-2">
+            <form class="expense-form-visual" data-action="add-expense">
+              <section class="visual-amount-panel">
+                <div class="visual-label">金額</div>
+                <input class="visual-amount-input" name="amount" inputmode="decimal" placeholder="0" required>
+                <div class="visual-amount-note">先輸入金額，再選幣別跟付款人</div>
+                <div class="visual-choice-row" style="margin-top:12px">
+                  <label class="visual-choice"><input type="radio" name="currency" value="JPY" checked><span>JPY 日幣</span></label>
+                  <label class="visual-choice"><input type="radio" name="currency" value="TWD"><span>TWD 台幣</span></label>
+                </div>
+              </section>
+
+              <section class="visual-block">
+                <div class="visual-label">付款人</div>
+                <div class="visual-choice-row">
+                  ${state.travelers.map((name, index) => `
+                    <label class="visual-choice"><input type="radio" name="payer" value="${attr(name)}" ${index === 0 ? "checked" : ""}><span>${escapeHtml(name)}</span></label>
+                  `).join("")}
+                </div>
+              </section>
+
+              <section class="visual-block">
+                <div class="visual-label">付款方式</div>
+                <div class="visual-choice-row">
+                  <label class="visual-choice"><input type="radio" name="payment" value="現金" checked><span>現金</span></label>
+                  <label class="visual-choice"><input type="radio" name="payment" value="刷卡"><span>刷卡</span></label>
+                </div>
+              </section>
+
+              <section class="visual-block">
+                <div class="visual-label">分類</div>
+                <div class="visual-category-grid">
+                  ${categories.map(([cat, mark], index) => `
+                    <label class="visual-choice">
+                      <input type="radio" name="category" value="${attr(cat)}" ${index === 0 ? "checked" : ""}>
+                      <span><b class="visual-category-mark">${escapeHtml(mark)}</b>${escapeHtml(cat)}</span>
+                    </label>
+                  `).join("")}
+                </div>
+              </section>
+
+              <section class="visual-secondary-fields">
                 <label class="form-label">日期
                   <input class="form-field" name="date" type="date" value="${attr(defaultDate)}" required>
                 </label>
-                <label class="form-label">付款人
-                  <select class="form-select" name="payer">
-                    ${state.travelers.map((name) => `<option value="${attr(name)}">${escapeHtml(name)}</option>`).join("")}
-                  </select>
+                <label class="form-label"><span>店家 / 項目 <span class="quick-required">必填</span></span>
+                  <input class="form-field" name="title" placeholder="例如：拉麵、車票、藥妝" required>
                 </label>
-              </div>
-              <label class="form-label"><span>項目 <span class="quick-required">必填</span></span>
-                <input class="form-field" name="title" placeholder="例如：拉麵、車票、藥妝" required>
-              </label>
-              <div class="form-row-2">
-                <label class="form-label">金額
-                  <input class="form-field" name="amount" inputmode="decimal" placeholder="1000" required>
-                </label>
-                <label class="form-label">幣別
-                  <select class="form-select" name="currency">
-                    <option value="JPY">日幣</option>
-                    <option value="TWD">台幣</option>
-                  </select>
-                </label>
-              </div>
-              <div class="form-row-2">
-                <label class="form-label">付款方式
-                  <select class="form-select" name="payment">
-                    <option value="現金">現金</option>
-                    <option value="刷卡">刷卡</option>
-                  </select>
-                </label>
-                <label class="form-label">分類
-                  <select class="form-select" name="category">
-                    ${["餐飲","交通","購物","門票","住宿","伴手禮","其他"].map((cat) => `<option value="${cat}">${cat}</option>`).join("")}
-                  </select>
-                </label>
-              </div>
+              </section>
+
               <label class="form-label">備註
                 <input class="form-field" name="note" placeholder="可空白">
               </label>
-              <button class="primary-btn" type="submit">新增紀錄</button>
+              <button class="primary-btn" type="submit">加入花費</button>
             </form>
           </section>
 
@@ -3868,7 +4266,7 @@
             <div class="expense-panel-head">
               <div>
                 <h2 class="expense-panel-title">每個人已花費</h2>
-                <div class="expense-panel-sub">${escapeHtml(scopeLabel)}｜日幣現金剩餘只扣本人 JPY 現金消費</div>
+                <div class="expense-panel-sub">${escapeHtml(scopeLabel)}</div>
               </div>
             </div>
             <div class="expense-mini-tabs">
@@ -3876,15 +4274,23 @@
               <button class="expense-mini-tab ${state.moneyScope === "day" ? "active" : ""}" data-action="set-money-scope" data-scope="day" type="button">當日</button>
             </div>
             <div class="person-stat-list">
-              ${travelerStats.map((person) => `
-                <div class="person-stat-row">
-                  <div>
-                    <div class="person-stat-name">${escapeHtml(person.name)}</div>
-                    <div class="person-stat-note">日幣現金剩餘 ${escapeHtml(formatMoney(getTravelerCashRemaining(person.name), "JPY"))}</div>
+              ${travelerStats.map((person) => {
+                const cashRemaining = getTravelerCashRemaining(person.name);
+                const cashRemainingTwd = Math.round(cashRemaining * state.fxRate);
+                return `
+                  <div class="person-stat-row">
+                    <div>
+                      <div class="person-stat-name">${escapeHtml(person.name)}</div>
+                      <div class="person-stat-note">已花費約 ${escapeHtml(formatMoney(Math.round(person.TWDConverted), "TWD"))}</div>
+                    </div>
+                    <div class="person-stat-value cash-main">
+                      <span class="person-stat-mini">日幣現金剩餘</span>
+                      ${escapeHtml(formatMoney(cashRemaining, "JPY"))}
+                      <span>約 ${escapeHtml(formatMoney(cashRemainingTwd, "TWD"))}</span>
+                    </div>
                   </div>
-                  <div class="person-stat-value">${escapeHtml(formatMoney(Math.round(person.TWDConverted), "TWD"))}</div>
-                </div>
-              `).join("")}
+                `;
+              }).join("")}
             </div>
           </section>
 
@@ -3899,35 +4305,36 @@
             ${scopedExpenses.length ? `
               <div class="expense-record-list-simple">
                 ${scopedExpenses.map((item) => `
-                  <div class="expense-record-row-simple">
+                  <article class="expense-record-row-simple">
                     <div>
                       <div class="expense-record-title-simple">${escapeHtml(item.title)}</div>
                       <div class="expense-record-meta-simple">${escapeHtml(item.date)}｜${escapeHtml(item.payer || state.travelers[0])}</div>
                       <div class="expense-record-tags-simple">
-                        <span class="expense-pill-simple">${escapeHtml(item.category)}</span>
-                        <span class="expense-pill-simple">${escapeHtml(item.payment)}</span>
-                        <span class="expense-pill-simple">${escapeHtml(item.currency)}</span>
-                        ${item.note ? `<span class="expense-pill-simple">${escapeHtml(item.note)}</span>` : ""}
+                        <span class="expense-record-tag">${escapeHtml(item.category)}</span>
+                        <span class="expense-record-tag">${escapeHtml(item.payment)}</span>
+                        <span class="expense-record-tag">${escapeHtml(item.currency)}</span>
+                        ${item.note ? `<span class="expense-record-tag">${escapeHtml(item.note)}</span>` : ""}
                       </div>
+                      <button class="delete-expense-btn" data-action="delete-expense" data-expense-id="${attr(item.id)}" type="button">刪除</button>
                     </div>
                     <div class="expense-record-amount-simple">
                       ${escapeHtml(formatMoney(item.amount, item.currency))}
-                      <div class="expense-stat-note">約 ${escapeHtml(formatMoney(Math.round(expenseToTwd(item)), "TWD"))}</div>
-                      <button class="delete-expense-inline" data-action="delete-expense" data-expense-id="${attr(item.id)}" type="button">刪除</button>
+                      <span>約 ${escapeHtml(formatMoney(Math.round(expenseToTwd(item)), "TWD"))}</span>
                     </div>
-                  </div>
+                  </article>
                 `).join("")}
               </div>
             ` : `
               <section class="favorite-empty">
                 <strong>還沒有花費紀錄</strong>
-                旅途中可直接在這裡記錄日幣跟台幣支出
+                旅途中可以直接從上方新增第一筆
               </section>
             `}
           </section>
         </div>
       `;
     }
+
 
     function searchPageHtml() {
       const stops = getStops();
