@@ -2518,6 +2518,158 @@
       color: var(--light);
     }
 
+    .money-page-simple .person-stat-value.expense-main {
+      color: var(--text);
+      font-size: 15.5px;
+      letter-spacing: -0.02em;
+    }
+
+    .money-page-simple .person-stat-value.expense-main span {
+      color: var(--light);
+    }
+
+    .person-cash-remain-line {
+      margin-top: 5px;
+      color: var(--light);
+      font-size: 11px;
+      font-weight: 760;
+      line-height: 1.45;
+    }
+
+    .person-cash-remain-line strong {
+      display: block;
+      margin-top: 3px;
+      color: #8A6F32;
+      font-size: 12.5px;
+      font-weight: 950;
+      letter-spacing: -0.01em;
+    }
+
+    .person-cash-remain-line.negative,
+    .person-cash-remain-line.negative strong {
+      color: var(--danger);
+    }
+
+    /* Expense usability sweep */
+    .amount-shortcut-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .amount-shortcut {
+      min-height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      padding: 0 11px;
+      font-size: 12px;
+      font-weight: 920;
+    }
+
+    .amount-shortcut:active {
+      transform: scale(.985);
+    }
+
+    .expense-cash-preview {
+      min-height: 18px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 11.5px;
+      font-weight: 820;
+      line-height: 1.45;
+    }
+
+    .expense-cash-preview:empty {
+      display: none;
+    }
+
+    .expense-cash-preview.negative {
+      color: var(--danger);
+    }
+
+    .money-total-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+
+    .money-total-item {
+      border: 1px solid var(--line-soft);
+      border-radius: 18px;
+      background: #fff;
+      padding: 11px 12px;
+    }
+
+    .money-total-item.full {
+      grid-column: 1 / -1;
+    }
+
+    .money-total-label {
+      color: var(--light);
+      font-size: 10.5px;
+      font-weight: 950;
+      letter-spacing: .04em;
+    }
+
+    .money-total-value {
+      margin-top: 5px;
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 950;
+      line-height: 1.15;
+      letter-spacing: -.025em;
+    }
+
+    .money-total-note {
+      margin-top: 4px;
+      color: var(--light);
+      font-size: 10.5px;
+      font-weight: 780;
+      line-height: 1.35;
+    }
+
+    .expense-scope-control {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 10px;
+      margin: -2px 0 12px;
+      color: var(--light);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .expense-scope-date {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      color: var(--text);
+      padding: 0 11px;
+      font-size: 13px;
+      font-weight: 850;
+      outline: none;
+    }
+
+    .money-page-simple .person-stat-value.cash-main.negative {
+      color: var(--danger);
+    }
+
+    .money-page-simple .person-stat-value.cash-main.negative span {
+      color: var(--danger);
+    }
+
+    @media (max-width: 390px) {
+      .money-total-strip {
+        grid-template-columns: 1fr;
+      }
+    }
+
   </style>
 </head>
 
@@ -2666,6 +2818,7 @@
       travelers: getStoredTravelers(),
       moneyScope: "trip",
       moneySettingsOpen: false,
+      expenseDraft: {},
       fxAutoChecked: false,
       loading: true,
       message: "",
@@ -2868,7 +3021,11 @@
     }
 
     function normalizeMoneyAmount(value) {
-      const amount = Number(String(value || "").replace(/,/g, ""));
+      const normalized = String(value || "")
+        .replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xFEE0))
+        .replace(/[．]/g, ".")
+        .replace(/[^0-9.\-]/g, "");
+      const amount = Number(normalized);
       return Number.isFinite(amount) && amount > 0 ? amount : 0;
     }
 
@@ -2934,7 +3091,27 @@
       });
     }
 
-        function buildExpenseSummaryText() {
+    function updateExpenseCashPreview(form) {
+      if (!form) return;
+      const preview = form.querySelector("[data-expense-cash-preview]");
+      if (!preview) return;
+      const data = Object.fromEntries(new FormData(form).entries());
+      const amount = normalizeMoneyAmount(data.amount);
+      const currency = data.currency === "TWD" ? "TWD" : "JPY";
+      const payment = data.payment === "刷卡" ? "刷卡" : "現金";
+      const payer = normalizePayerName(data.payer || state.travelers[0] || FIXED_TRAVELERS[0]);
+
+      preview.classList.remove("negative");
+      preview.textContent = "";
+      if (!amount || currency !== "JPY" || payment !== "現金") return;
+
+      const before = getTravelerCashRemaining(payer);
+      const after = before - amount;
+      preview.textContent = `${payer} 日幣現金 ${formatMoney(before, "JPY")} → ${formatMoney(after, "JPY")}`;
+      if (after < 0) preview.classList.add("negative");
+    }
+
+    function buildExpenseSummaryText() {
       const scoped = getScopedExpenses();
       const totals = sumExpenses(scoped);
       const travelerStats = getTravelerExpenseStats(scoped);
@@ -3180,6 +3357,14 @@
       const rangeDates = parseTripRangeFromSettings();
       if (rangeDates && rangeDates.length) return rangeDates;
       return getDates();
+    }
+
+    function getExpenseDefaultDate() {
+      const today = todayISO();
+      const tripDates = getTripDateOptions();
+      if (tripDates.includes(today)) return today;
+      if (state.selectedDate) return state.selectedDate;
+      return tripDates[0] || today;
     }
 
     function getDates() {
@@ -4168,8 +4353,13 @@
     function moneyPageHtml() {
       const scopedExpenses = getScopedExpenses();
       const travelerStats = getTravelerExpenseStats(scopedExpenses);
-      const defaultDate = state.selectedDate || todayISO();
+      const defaultDate = getExpenseDefaultDate();
       const scopeLabel = state.moneyScope === "day" ? "當日" : "全旅程";
+      const lastExpense = state.expenseDraft && Object.keys(state.expenseDraft).length ? state.expenseDraft : (state.expenses[0] || {});
+      const defaultCurrency = lastExpense.currency === "TWD" ? "TWD" : "JPY";
+      const defaultPayer = normalizePayerName(lastExpense.payer || state.travelers[0] || FIXED_TRAVELERS[0]);
+      const defaultPayment = lastExpense.payment === "刷卡" ? "刷卡" : "現金";
+      const defaultCategory = lastExpense.category || "餐飲";
       const categories = [["餐飲", "食"], ["交通", "移"], ["購物", "買"], ["門票", "票"], ["住宿", "宿"], ["伴手禮", "禮"], ["其他", "其"]];
 
       return `
@@ -4209,19 +4399,26 @@
             <form class="expense-form-visual" data-action="add-expense">
               <section class="visual-amount-panel">
                 <div class="visual-label">金額</div>
-                <input class="visual-amount-input" name="amount" inputmode="decimal" placeholder="0" required>
+                <input class="visual-amount-input" name="amount" inputmode="decimal" placeholder="0" required autofocus>
                 <div class="visual-amount-note">先輸入金額，再選幣別跟付款人</div>
                 <div class="visual-choice-row" style="margin-top:12px">
-                  <label class="visual-choice"><input type="radio" name="currency" value="JPY" checked><span>JPY 日幣</span></label>
-                  <label class="visual-choice"><input type="radio" name="currency" value="TWD"><span>TWD 台幣</span></label>
+                  <label class="visual-choice"><input type="radio" name="currency" value="JPY" ${defaultCurrency === "JPY" ? "checked" : ""}><span>JPY 日幣</span></label>
+                  <label class="visual-choice"><input type="radio" name="currency" value="TWD" ${defaultCurrency === "TWD" ? "checked" : ""}><span>TWD 台幣</span></label>
                 </div>
+                <div class="amount-shortcut-row">
+                  <button class="amount-shortcut" data-action="add-amount-shortcut" data-amount="500" type="button">+500</button>
+                  <button class="amount-shortcut" data-action="add-amount-shortcut" data-amount="1000" type="button">+1000</button>
+                  <button class="amount-shortcut" data-action="add-amount-shortcut" data-amount="2000" type="button">+2000</button>
+                  <button class="amount-shortcut" data-action="add-amount-shortcut" data-amount="5000" type="button">+5000</button>
+                </div>
+                <div class="expense-cash-preview" data-expense-cash-preview></div>
               </section>
 
               <section class="visual-block">
                 <div class="visual-label">付款人</div>
                 <div class="visual-choice-row">
-                  ${state.travelers.map((name, index) => `
-                    <label class="visual-choice"><input type="radio" name="payer" value="${attr(name)}" ${index === 0 ? "checked" : ""}><span>${escapeHtml(name)}</span></label>
+                  ${state.travelers.map((name) => `
+                    <label class="visual-choice"><input type="radio" name="payer" value="${attr(name)}" ${name === defaultPayer ? "checked" : ""}><span>${escapeHtml(name)}</span></label>
                   `).join("")}
                 </div>
               </section>
@@ -4229,17 +4426,17 @@
               <section class="visual-block">
                 <div class="visual-label">付款方式</div>
                 <div class="visual-choice-row">
-                  <label class="visual-choice"><input type="radio" name="payment" value="現金" checked><span>現金</span></label>
-                  <label class="visual-choice"><input type="radio" name="payment" value="刷卡"><span>刷卡</span></label>
+                  <label class="visual-choice"><input type="radio" name="payment" value="現金" ${defaultPayment === "現金" ? "checked" : ""}><span>現金</span></label>
+                  <label class="visual-choice"><input type="radio" name="payment" value="刷卡" ${defaultPayment === "刷卡" ? "checked" : ""}><span>刷卡</span></label>
                 </div>
               </section>
 
               <section class="visual-block">
                 <div class="visual-label">分類</div>
                 <div class="visual-category-grid">
-                  ${categories.map(([cat, mark], index) => `
+                  ${categories.map(([cat, mark]) => `
                     <label class="visual-choice">
-                      <input type="radio" name="category" value="${attr(cat)}" ${index === 0 ? "checked" : ""}>
+                      <input type="radio" name="category" value="${attr(cat)}" ${cat === defaultCategory ? "checked" : ""}>
                       <span><b class="visual-category-mark">${escapeHtml(mark)}</b>${escapeHtml(cat)}</span>
                     </label>
                   `).join("")}
@@ -4250,8 +4447,8 @@
                 <label class="form-label">日期
                   <input class="form-field" name="date" type="date" value="${attr(defaultDate)}" required>
                 </label>
-                <label class="form-label"><span>店家 / 項目 <span class="quick-required">必填</span></span>
-                  <input class="form-field" name="title" placeholder="例如：拉麵、車票、藥妝" required>
+                <label class="form-label">店家 / 項目
+                  <input class="form-field" name="title" placeholder="可空白，例如：拉麵、車票、藥妝">
                 </label>
               </section>
 
@@ -4265,7 +4462,7 @@
           <section class="section expense-simple-panel">
             <div class="expense-panel-head">
               <div>
-                <h2 class="expense-panel-title">每個人已花費</h2>
+                <h2 class="expense-panel-title">付款人統計</h2>
                 <div class="expense-panel-sub">${escapeHtml(scopeLabel)}</div>
               </div>
             </div>
@@ -4273,24 +4470,34 @@
               <button class="expense-mini-tab ${state.moneyScope === "trip" ? "active" : ""}" data-action="set-money-scope" data-scope="trip" type="button">全旅程</button>
               <button class="expense-mini-tab ${state.moneyScope === "day" ? "active" : ""}" data-action="set-money-scope" data-scope="day" type="button">當日</button>
             </div>
+            ${state.moneyScope === "day" ? `
+              <label class="expense-scope-control">
+                查看日期
+                <input class="expense-scope-date" data-action="money-date-input" type="date" value="${attr(defaultDate)}">
+              </label>
+            ` : ""}
             <div class="person-stat-list">
               ${travelerStats.map((person) => {
                 const cashRemaining = getTravelerCashRemaining(person.name);
-                const cashRemainingTwd = Math.round(cashRemaining * state.fxRate);
+                const spentTwd = Math.round(person.TWDConverted);
+                const spentJpy = state.fxRate > 0 ? Math.round(spentTwd / state.fxRate) : Math.round(person.JPY);
                 return `
                   <div class="person-stat-row">
                     <div>
                       <div class="person-stat-name">${escapeHtml(person.name)}</div>
-                      <div class="person-stat-note">已花費約 ${escapeHtml(formatMoney(Math.round(person.TWDConverted), "TWD"))}</div>
+                      <div class="person-cash-remain-line ${cashRemaining < 0 ? "negative" : ""}">
+                        目前日幣現金剩餘
+                        <strong>${escapeHtml(formatMoney(cashRemaining, "JPY"))}</strong>
+                      </div>
                     </div>
-                    <div class="person-stat-value cash-main">
-                      <span class="person-stat-mini">日幣現金剩餘</span>
-                      ${escapeHtml(formatMoney(cashRemaining, "JPY"))}
-                      <span>約 ${escapeHtml(formatMoney(cashRemainingTwd, "TWD"))}</span>
+                    <div class="person-stat-value expense-main">
+                      ${escapeHtml(formatMoney(spentJpy, "JPY"))}
+                      <span>約 ${escapeHtml(formatMoney(spentTwd, "TWD"))}</span>
                     </div>
                   </div>
                 `;
               }).join("")}
+            </div>
             </div>
           </section>
 
@@ -4842,12 +5049,19 @@
           });
         }
 
+        if (action === "money-date-input") {
+          element.addEventListener("change", (event) => {
+            state.selectedDate = event.target.value || todayISO();
+            render();
+          });
+        }
+
 
         if (action === "save-money-settings") {
           element.addEventListener("submit", (event) => {
             event.preventDefault();
             const data = Object.fromEntries(new FormData(event.currentTarget).entries());
-            const fxRate = Number(String(data.fxRate || "").replace(/,/g, ""));
+            const fxRate = normalizeMoneyAmount(data.fxRate);
             if (!Number.isFinite(fxRate) || fxRate <= 0) {
               state.message = "匯率格式不正確";
               render();
@@ -4858,8 +5072,8 @@
             state.cashWallet = {
               JPY: Object.fromEntries(FIXED_TRAVELERS.map((name) => {
                 const raw = data[`cashJPY_${name}`] || "0";
-                const amount = Number(String(raw).replace(/,/g, ""));
-                return [name, Number.isFinite(amount) ? Math.max(0, amount) : 0];
+                const amount = normalizeMoneyAmount(raw);
+                return [name, amount];
               }))
             };
             state.travelers = [...FIXED_TRAVELERS];
@@ -4871,7 +5085,7 @@
             saveCashWallet();
             saveTravelers();
             saveExpenses();
-            state.moneySettingsOpen = true;
+            state.moneySettingsOpen = false;
             state.message = "匯率跟三人日幣現金已更新";
             render();
           });
@@ -4898,7 +5112,23 @@
           });
         }
 
+        if (action === "add-amount-shortcut") {
+          element.addEventListener("click", () => {
+            const form = element.closest("form");
+            const input = form ? form.querySelector("input[name='amount']") : null;
+            if (!input) return;
+            const current = normalizeMoneyAmount(input.value);
+            const addValue = Number(element.dataset.amount || 0);
+            input.value = String(current + addValue);
+            input.focus();
+            updateExpenseCashPreview(form);
+          });
+        }
+
         if (action === "add-expense") {
+          element.addEventListener("input", () => updateExpenseCashPreview(element));
+          element.addEventListener("change", () => updateExpenseCashPreview(element));
+          window.requestAnimationFrame(() => updateExpenseCashPreview(element));
           element.addEventListener("submit", (event) => {
             event.preventDefault();
             const data = Object.fromEntries(new FormData(event.currentTarget).entries());
@@ -4911,7 +5141,7 @@
             const expense = {
               id: `expense_${Date.now()}_${Math.random().toString(16).slice(2)}`,
               date: data.date || state.selectedDate || todayISO(),
-              title: String(data.title || "").trim() || "未命名花費",
+              title: String(data.title || "").trim() || `${data.category || "其他"}花費`,
               amount,
               currency: data.currency === "TWD" ? "TWD" : "JPY",
               payer: normalizePayerName(data.payer || state.travelers[0] || FIXED_TRAVELERS[0]),
@@ -4920,6 +5150,8 @@
               note: String(data.note || "").trim(),
               createdAt: new Date().toISOString()
             };
+            state.expenseDraft = { currency: expense.currency, payer: expense.payer, payment: expense.payment, category: expense.category };
+            state.selectedDate = expense.date;
             state.expenses = [expense, ...state.expenses];
             saveExpenses();
             state.message = "已新增花費紀錄";
