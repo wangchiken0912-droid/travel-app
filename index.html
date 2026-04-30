@@ -103,6 +103,13 @@
       font-weight: 900;
       line-height: 1.15;
       letter-spacing: -0.02em;
+      word-break: keep-all;
+      line-break: strict;
+      overflow-wrap: normal;
+    }
+
+    .keep-word {
+      white-space: nowrap;
     }
 
     .trip-subtitle {
@@ -2670,6 +2677,148 @@
       }
     }
 
+    /* Clean expense record layout: reduce divider lines and prevent overflow */
+    .money-page-simple .expense-simple-panel {
+      border-top: 0;
+      border-bottom: 0;
+      padding: 16px 0 20px;
+    }
+
+    .money-page-simple .expense-panel-head {
+      margin-bottom: 10px;
+    }
+
+    .money-page-simple .expense-record-list-simple {
+      width: 100%;
+      max-width: 100%;
+      border-top: 0;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    .money-page-simple .expense-record-row-simple {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 96px;
+      gap: 12px;
+      align-items: start;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      overflow: hidden;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--line-soft);
+      box-sizing: border-box;
+    }
+
+    .money-page-simple .expense-record-row-simple:last-child {
+      border-bottom: 0;
+    }
+
+    .money-page-simple .expense-record-main-simple {
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    .money-page-simple .expense-record-title-simple,
+    .money-page-simple .expense-record-meta-simple {
+      display: block;
+      max-width: 100%;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      box-sizing: border-box;
+    }
+
+    .money-page-simple .expense-record-tags-simple {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-width: 100%;
+      min-width: 0;
+      margin-top: 8px;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    .money-page-simple .expense-record-tag {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      min-width: 0;
+      min-height: 22px;
+      border-radius: 999px;
+      background: var(--card-soft);
+      color: var(--muted);
+      padding: 0 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 10.5px;
+      font-weight: 850;
+      line-height: 1;
+      box-sizing: border-box;
+    }
+
+    .money-page-simple .expense-record-amount-simple {
+      width: 96px;
+      max-width: 96px;
+      min-width: 0;
+      overflow: hidden;
+      text-align: right;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      box-sizing: border-box;
+      white-space: normal;
+    }
+
+    .money-page-simple .expense-record-amount-primary {
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+      font-size: 14.5px;
+      font-weight: 950;
+      line-height: 1.25;
+    }
+
+    .money-page-simple .expense-record-amount-sub {
+      display: block;
+      max-width: 100%;
+      margin-top: 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--light);
+      font-size: 10.5px;
+      font-weight: 850;
+      line-height: 1.25;
+    }
+
+    @media (max-width: 390px) {
+      .money-page-simple .expense-record-row-simple {
+        grid-template-columns: minmax(0, 1fr) 88px;
+        gap: 10px;
+      }
+
+      .money-page-simple .expense-record-amount-simple {
+        width: 88px;
+        max-width: 88px;
+      }
+
+      .money-page-simple .expense-record-amount-primary {
+        font-size: 13.5px;
+      }
+
+      .money-page-simple .expense-record-amount-sub {
+        font-size: 9.5px;
+      }
+    }
+
+
   </style>
 </head>
 
@@ -3727,6 +3876,14 @@
       return state.editMode ? html : "";
     }
 
+    function formatTripTitleHtml(title) {
+      const safeTitle = escapeHtml(title);
+      if (safeTitle.includes("大阪・京都行程")) {
+        return safeTitle.replace("大阪・京都行程", '<span class="keep-word">大阪・京都行程</span>');
+      }
+      return safeTitle.replace(/行程$/u, '<span class="keep-word">行程</span>');
+    }
+
     function topHtml(titleOverride = "") {
       const settings = getSettings();
       const dates = getDates();
@@ -3737,7 +3894,7 @@
         <header class="top">
           <div class="top-row">
             <div>
-              <h1 class="trip-title">${escapeHtml(title)}</h1>
+              <h1 class="trip-title">${formatTripTitleHtml(title)}</h1>
               <p class="trip-subtitle">${escapeHtml(subtitle)}</p>
             </div>
             <div class="top-actions">
@@ -4498,7 +4655,6 @@
                 `;
               }).join("")}
             </div>
-            </div>
           </section>
 
           <section class="section expense-simple-panel">
@@ -4513,7 +4669,7 @@
               <div class="expense-record-list-simple">
                 ${scopedExpenses.map((item) => `
                   <article class="expense-record-row-simple">
-                    <div>
+                    <div class="expense-record-main-simple">
                       <div class="expense-record-title-simple">${escapeHtml(item.title)}</div>
                       <div class="expense-record-meta-simple">${escapeHtml(item.date)}｜${escapeHtml(item.payer || state.travelers[0])}</div>
                       <div class="expense-record-tags-simple">
@@ -4525,8 +4681,8 @@
                       <button class="delete-expense-btn" data-action="delete-expense" data-expense-id="${attr(item.id)}" type="button">刪除</button>
                     </div>
                     <div class="expense-record-amount-simple">
-                      ${escapeHtml(formatMoney(item.amount, item.currency))}
-                      <span>約 ${escapeHtml(formatMoney(Math.round(expenseToTwd(item)), "TWD"))}</span>
+                      <div class="expense-record-amount-primary">${escapeHtml(formatMoney(item.amount, item.currency))}</div>
+                      <div class="expense-record-amount-sub">約 ${escapeHtml(formatMoney(Math.round(expenseToTwd(item)), "TWD"))}</div>
                     </div>
                   </article>
                 `).join("")}
