@@ -3456,6 +3456,51 @@
       return getStops().find((stop) => stopId(stop) === id) || null;
     }
 
+    function runtimeRowId(row, counters) {
+      const normalized = normalizeRow(row);
+      if (normalized.type === "itinerary") {
+        const order = Number(normalized.order || counters.itinerary + 1);
+        counters.itinerary += 1;
+        return stopId({
+          id: normalized.id || "",
+          date: normalized.date || "",
+          order,
+          time: normalized.time || "",
+          title: normalized.title || ""
+        });
+      }
+      if (normalized.type === "favorite") {
+        counters.favorite += 1;
+        return favoriteId({
+          id: normalized.id || "",
+          title: normalized.title || "",
+          area: normalized.area || "",
+          category: normalized.category || "",
+          address: normalized.address || ""
+        });
+      }
+      return normalized.id || "";
+    }
+
+    function findStopAfterLocalWrite(data, fallbackTargetId = "") {
+      const normalizedId = String(data.id || data.ID || "").trim();
+      if (normalizedId) {
+        const byId = findStopById(normalizedId);
+        if (byId) return byId;
+      }
+
+      const candidates = getStops().filter((stop) => {
+        if (fallbackTargetId && stopId(stop) === fallbackTargetId) return true;
+        if (data.date && stop.date !== data.date) return false;
+        if (data.title && stop.title !== data.title) return false;
+        if (data.time && stop.time !== data.time) return false;
+        if (data.address && stop.address !== data.address) return false;
+        return Boolean(data.date || data.title || data.time || data.address);
+      });
+
+      return candidates[candidates.length - 1] || null;
+    }
+
     function isFavoriteStop(stop) {
       return state.favorites.includes(stopId(stop));
     }
@@ -4345,18 +4390,27 @@
 
     function applyOptimisticChange(action, data) {
       const normalized = normalizeWriteData(data);
-      const id = normalized.ID || normalized.id || data.id || data.ID || "";
+      const id = String(normalized.ID || normalized.id || data.id || data.ID || "").trim();
+      const targetId = String(data._targetId || data.targetId || id || "").trim();
       const internal = writeDataToInternalRow(data, id);
+      const counters = { itinerary: 0, favorite: 0 };
 
       if (action === "delete") {
-        state.rows = state.rows.filter((row) => normalizeRow(row).id !== id);
+        state.rows = state.rows.filter((row) => {
+          const rowId = runtimeRowId(row, counters);
+          const normalizedRow = normalizeRow(row);
+          return !(normalizedRow.id === id || rowId === targetId || rowId === id);
+        });
       } else if (action === "update") {
         let found = false;
         state.rows = state.rows.map((row) => {
+          const rowId = runtimeRowId(row, counters);
           const normalizedRow = normalizeRow(row);
-          if (normalizedRow.id === id) {
+          const isSameRow = (id && normalizedRow.id === id) || (targetId && rowId === targetId) || (id && rowId === id);
+          if (isSameRow) {
             found = true;
-            return { ...normalizedRow, ...internal, id };
+            const preservedId = normalizedRow.id || id || "";
+            return { ...normalizedRow, ...internal, id: preservedId };
           }
           return row;
         });
@@ -4439,6 +4493,8 @@
     }
 
     async function sendWrite(action, data) {
+      const originalTargetId = String(data._targetId || data.targetId || state.formId || data.id || data.ID || "").trim();
+
       if (action === "create" && !data.id && !data.ID) {
         data = { ...data, id: makeTempId(data.type || data.類型 || "行程") };
       }
@@ -4446,7 +4502,13 @@
       applyOptimisticChange(action, data);
 
       const savedType = normalizeTypeValue(data.type || data.類型 || "");
-      if (savedType === "itinerary" && data.date) state.selectedDate = data.date;
+      if (savedType === "itinerary") {
+        if (data.date) state.selectedDate = data.date;
+        if (action === "update") {
+          const updatedStop = findStopAfterLocalWrite(data, originalTargetId);
+          if (updatedStop) state.selectedStopId = stopId(updatedStop);
+        }
+      }
 
       state.message = action === "delete" ? "已先從本機移除" : "已先在本機顯示";
       state.syncStatus = "正在同步 Google Sheet";
@@ -4654,11 +4716,8 @@
                 </div>
               `)}
               <div class="detail-actions">
-                <button class="card-button outline" data-action="copy-address" data-copy="${attr(getDestinationQuery(place))}" type="button">複製地址</button>
+                <a class="card-button outline" href="${attr(buildMapsSearchUrl(place))}" target="_blank" rel="noreferrer">查看地點</a>
                 <a class="card-button filled" href="${attr(buildCurrentLocationDirectionsUrl(place))}" target="_blank" rel="noreferrer">現在前往</a>
-              </div>
-              <div class="inline-actions">
-                <a class="mini-action" href="${attr(buildMapsSearchUrl(place))}" target="_blank" rel="noreferrer">查看地點</a>
               </div>
               ${editOnly(`
                 <div class="inline-actions">
@@ -5279,6 +5338,110 @@
       placeQuickActionMenu(menu, x, y);
     }
 
+    function showFavoriteQuickActionMenu(favoriteIdValue, x, y, sourceElement) {
+      const place = findFavoriteById(favoriteIdValue);
+      if (!place) return;
+
+      closeQuickActionMenu();
+      quickActionSuppressClick = true;
+      clearQuickActionSuppressSoon();
+      if (sourceElement) sourceElement.classList.add("quick-pressed");
+
+      const backdrop = document.createElement("div");
+      backdrop.className = "quick-action-backdrop";
+      backdrop.addEventListener("click", closeQuickActionMenu);
+      document.body.appendChild(backdrop);
+
+      const menu = document.createElement("div");
+      menu.className = "quick-action-menu";
+      menu.setAttribute("role", "menu");
+      menu.innerHTML = `
+        <div class="quick-action-head">
+          <div class="quick-action-title">${escapeHtml(place.title)}</div>
+          <div class="quick-action-meta">${escapeHtml([place.category || "收藏", place.area || ""].filter(Boolean).join("｜"))}</div>
+        </div>
+        <button class="quick-action-button" type="button" data-quick-action="edit">修改<span class="quick-action-arrow">›</span></button>
+        <button class="quick-action-button" type="button" data-quick-action="nav">導航<span class="quick-action-arrow">›</span></button>
+        <button class="quick-action-button danger" type="button" data-quick-action="delete">刪除<span class="quick-action-arrow">›</span></button>
+      `;
+
+      menu.querySelectorAll("[data-quick-action]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const action = button.dataset.quickAction;
+          closeQuickActionMenu();
+
+          if (action === "edit") {
+            if (!requireEditMode()) return;
+            openForm("edit", "收藏", favoriteId(place));
+            return;
+          }
+
+          if (action === "nav") {
+            window.open(buildCurrentLocationDirectionsUrl(place), "_blank", "noopener,noreferrer");
+            return;
+          }
+
+          if (action === "delete") {
+            if (!requireEditMode()) return;
+            const ok = confirm(`確定要刪除這筆收藏？\n\n${place.title}\n\n刪除後會從 Google Sheet 移除。`);
+            if (!ok) return;
+            sendWrite("delete", { id: favoriteId(place), type: "收藏", title: place.title });
+          }
+        });
+      });
+
+      placeQuickActionMenu(menu, x, y);
+    }
+
+    function bindFavoriteQuickActions() {
+      let longPressTimer = 0;
+      let startX = 0;
+      let startY = 0;
+      let targetElement = null;
+      const longPressMs = 520;
+      const moveTolerance = 12;
+
+      app.querySelectorAll(".today-item[data-favorite-id]").forEach((element) => {
+        element.addEventListener("contextmenu", (event) => {
+          if (event.target.closest("a, button, input, select, textarea")) return;
+          event.preventDefault();
+        });
+
+        element.addEventListener("pointerdown", (event) => {
+          if (event.button !== undefined && event.button !== 0) return;
+          if (event.target.closest("a, button, input, select, textarea")) return;
+          closeQuickActionMenu();
+          targetElement = element;
+          startX = event.clientX;
+          startY = event.clientY;
+          window.clearTimeout(longPressTimer);
+          longPressTimer = window.setTimeout(() => {
+            if (!targetElement) return;
+            showFavoriteQuickActionMenu(element.dataset.favoriteId || "", startX, startY, element);
+          }, longPressMs);
+        });
+
+        element.addEventListener("pointermove", (event) => {
+          if (!targetElement) return;
+          const dx = Math.abs(event.clientX - startX);
+          const dy = Math.abs(event.clientY - startY);
+          if (dx > moveTolerance || dy > moveTolerance) {
+            window.clearTimeout(longPressTimer);
+            targetElement = null;
+          }
+        });
+
+        ["pointerup", "pointercancel", "pointerleave"].forEach((eventName) => {
+          element.addEventListener(eventName, () => {
+            window.clearTimeout(longPressTimer);
+            targetElement = null;
+          });
+        });
+      });
+    }
+
     function bindStopQuickActions() {
       let longPressTimer = 0;
       let startX = 0;
@@ -5453,7 +5616,12 @@
         }
 
         if (action === "open-favorite") {
-          element.addEventListener("click", () => {
+          element.addEventListener("click", (event) => {
+            if (quickActionSuppressClick) {
+              event.preventDefault();
+              event.stopPropagation();
+              return;
+            }
             state.previousScreen = state.screen === "favorite-detail" ? state.previousScreen : state.screen;
             state.selectedFavoriteId = element.dataset.favoriteId || "";
             state.selectedStopId = "";
@@ -5578,6 +5746,7 @@
             }
 
             const actionName = state.formMode === "edit" ? "update" : "create";
+            if (actionName === "update") payload._targetId = state.formId;
             sendWrite(actionName, payload);
           });
         }
@@ -5739,6 +5908,7 @@
       });
 
       bindStopQuickActions();
+      bindFavoriteQuickActions();
 
       app.querySelectorAll(".expense-settings-pop").forEach((details) => {
         details.addEventListener("toggle", () => {
