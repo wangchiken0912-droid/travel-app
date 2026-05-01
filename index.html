@@ -1829,6 +1829,22 @@
       font-weight: 900;
     }
 
+
+
+    /* Add itinerary form stability */
+    .form-card,
+    .form-grid-full,
+    .form-label {
+      min-width: 0;
+    }
+
+    .form-field,
+    .form-select,
+    .form-textarea {
+      max-width: 100%;
+      min-width: 0;
+    }
+
     .bottom-nav {
       position: fixed;
       inset: auto 0 0;
@@ -2819,6 +2835,137 @@
     }
 
 
+
+    /* Quick action menu: long-press itinerary cards */
+    .quick-action-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 140;
+      background: rgba(15, 23, 42, 0.04);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .quick-action-menu {
+      position: fixed;
+      z-index: 150;
+      width: min(176px, calc(100vw - 28px));
+      overflow: hidden;
+      border: 1px solid rgba(229, 231, 235, 0.92);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.18);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      transform-origin: top center;
+      animation: quickMenuIn 0.14s ease-out;
+    }
+
+    @keyframes quickMenuIn {
+      from { opacity: 0; transform: translateY(4px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .quick-action-head {
+      padding: 10px 12px 8px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .quick-action-title {
+      overflow: hidden;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 950;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .quick-action-meta {
+      margin-top: 3px;
+      overflow: hidden;
+      color: var(--light);
+      font-size: 10.5px;
+      font-weight: 800;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .quick-action-button {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      min-height: 42px;
+      border: 0;
+      border-bottom: 1px solid var(--line-soft);
+      background: transparent;
+      color: var(--text);
+      padding: 0 13px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .quick-action-button:last-child {
+      border-bottom: 0;
+    }
+
+    .quick-action-button:active {
+      background: var(--card-soft);
+    }
+
+    .quick-action-button.danger {
+      color: var(--danger);
+    }
+
+    .quick-action-arrow {
+      color: var(--light);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .today-item.quick-pressed,
+    .timeline-item.quick-pressed,
+    .stop-card.quick-pressed {
+      opacity: 0.72;
+    }
+
+
+    /* Logic / usability bug sweep */
+    .today-item,
+    .timeline-item,
+    .stop-card {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: pan-y;
+    }
+
+    .thumb,
+    .detail-image {
+      max-width: 100%;
+    }
+
+    .thumb-placeholder {
+      max-width: 100%;
+      contain: paint;
+    }
+
+    .detail-image .thumb-placeholder {
+      width: 100%;
+      max-width: 100%;
+    }
+
+
+    .thumb-placeholder::after {
+      right: 0;
+      bottom: 0;
+      width: 54px;
+      height: 54px;
+      transform: translate(22%, 22%);
+    }
+
   </style>
 </head>
 
@@ -2968,6 +3115,7 @@
       moneyScope: "trip",
       moneySettingsOpen: false,
       expenseDraft: {},
+      dateRailScrollLeft: 0,
       fxAutoChecked: false,
       loading: true,
       message: "",
@@ -2976,6 +3124,14 @@
       query: "",
       category: "全部"
     };
+
+    let quickActionSuppressClick = false;
+    let quickActionSuppressTimer = 0;
+    let rowsLoading = false;
+    let postWriteSyncTimer = 0;
+    let postWriteSyncFollowupTimer = 0;
+    let resumeSyncTimer = 0;
+    let lastResumeSyncAt = 0;
 
     const app = document.getElementById("app");
 
@@ -3516,6 +3672,21 @@
       return tripDates[0] || today;
     }
 
+    function getFormDefaultDate(item = {}) {
+      const today = todayISO();
+      const tripDates = getTripDateOptions();
+      if (item.date) return item.date;
+      if (state.selectedDate && tripDates.includes(state.selectedDate)) return state.selectedDate;
+      if (tripDates.includes(today)) return today;
+      return tripDates[0] || state.selectedDate || today;
+    }
+
+    function getFormDateOptions(selectedDate = "") {
+      const tripDates = getTripDateOptions();
+      const values = [selectedDate, ...tripDates].filter(Boolean);
+      return Array.from(new Set(values)).sort();
+    }
+
     function getDates() {
       return Array.from(new Set(getStops().map((stop) => stop.date).filter(Boolean)));
     }
@@ -3705,7 +3876,7 @@
       const notice = stop.notice ? `<div class="stop-note warning">${escapeHtml(stop.notice)}</div>` : "";
 
       return `
-        <article class="stop-card">
+        <article class="stop-card" data-action="open-stop" data-stop-id="${attr(stopId(stop))}" tabindex="0" role="button" aria-label="查看 ${attr(stop.title)} 詳情">
           <div class="stop-main">
             ${thumbnailHtml(stop)}
             <div class="stop-body">
@@ -3923,8 +4094,12 @@
       const dailyNotice = getDailyNotice();
       const firstTime = dayStops[0]?.time || "--";
       const realToday = todayISO();
-      const realTodayLabel = formatLongDate(realToday);
-      const displayDateLabel = state.selectedDate === realToday
+      const tripDates = getDates();
+      const realTodayInTrip = tripDates.includes(realToday);
+      const heroDateLabel = realTodayInTrip && state.selectedDate === realToday
+        ? formatLongDate(realToday)
+        : formatLongDate(state.selectedDate);
+      const displayDateLabel = realTodayInTrip && state.selectedDate === realToday
         ? "顯示今日行程"
         : `顯示 ${formatDateLabel(state.selectedDate)} 行程`;
 
@@ -3935,7 +4110,7 @@
           <section class="section hero">
             <div class="hero-main">
               <div class="date-stack">
-                <span class="date-label">${escapeHtml(realTodayLabel)}</span>
+                <span class="date-label">${escapeHtml(heroDateLabel)}</span>
                 <span class="date-sub-label">${escapeHtml(displayDateLabel)}</span>
               </div>
               <div class="hero-stats">
@@ -4064,6 +4239,41 @@
       };
     }
 
+    async function postWritePayload(payload) {
+      const body = JSON.stringify(payload);
+      return fetch(WRITE_WEB_APP_URL, {
+        method: "POST",
+        mode: "no-cors",
+        keepalive: true,
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body
+      });
+    }
+
+    function schedulePostWriteSync() {
+      window.clearTimeout(postWriteSyncTimer);
+      window.clearTimeout(postWriteSyncFollowupTimer);
+
+      postWriteSyncTimer = window.setTimeout(() => {
+        loadRows(true, { silent: true, reason: "post-write" });
+      }, 2500);
+
+      postWriteSyncFollowupTimer = window.setTimeout(() => {
+        loadRows(true, { silent: true, reason: "post-write-followup" });
+      }, 7600);
+    }
+
+    function scheduleResumeSync() {
+      if (document.visibilityState && document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (now - lastResumeSyncAt < 15000) return;
+      lastResumeSyncAt = now;
+      window.clearTimeout(resumeSyncTimer);
+      resumeSyncTimer = window.setTimeout(() => {
+        loadRows(true, { silent: true, reason: "resume" });
+      }, 400);
+    }
+
     function normalizeWriteData(raw) {
       return {
         ID: raw.id || raw.ID || "",
@@ -4182,6 +4392,7 @@
 
       state.message = "已先加入本機行程";
       state.syncStatus = "正在同步 Google Sheet，收藏已標記為已加入";
+      if (itineraryPayload.date) state.selectedDate = itineraryPayload.date;
       returnAfterWrite(itineraryPayload);
       render();
 
@@ -4192,24 +4403,13 @@
       }
 
       try {
-        await fetch(WRITE_WEB_APP_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(actionPayload("create", normalizeWriteData(itineraryPayload)))
-        });
-
-        await fetch(WRITE_WEB_APP_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(actionPayload("update", normalizeWriteData(markedFavorite)))
-        });
+        await postWritePayload(actionPayload("create", normalizeWriteData(itineraryPayload)));
+        await postWritePayload(actionPayload("update", normalizeWriteData(markedFavorite)));
 
         state.message = "已送出";
-        state.syncStatus = "等待 Google Sheet 發佈資料同步";
+        state.syncStatus = "正在自動同步最新資料";
         render();
-        window.setTimeout(() => loadRows(true), 2200);
+        schedulePostWriteSync();
       } catch (error) {
         state.message = "同步失敗";
         state.syncStatus = "已保留在本機暫存，請網路穩定後再試";
@@ -4223,6 +4423,9 @@
       }
 
       applyOptimisticChange(action, data);
+
+      const savedType = normalizeTypeValue(data.type || data.類型 || "");
+      if (savedType === "itinerary" && data.date) state.selectedDate = data.date;
 
       state.message = action === "delete" ? "已先從本機移除" : "已先在本機顯示";
       state.syncStatus = "正在同步 Google Sheet";
@@ -4238,18 +4441,13 @@
       const payload = actionPayload(action, normalizeWriteData(data));
 
       try {
-        await fetch(WRITE_WEB_APP_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(payload)
-        });
+        await postWritePayload(payload);
 
         state.message = "已送出";
-        state.syncStatus = "等待 Google Sheet 發佈資料同步";
+        state.syncStatus = "正在自動同步最新資料";
         render();
 
-        window.setTimeout(() => loadRows(true), 2200);
+        schedulePostWriteSync();
       } catch (error) {
         state.message = "同步失敗";
         state.syncStatus = "已保留在本機暫存，請網路穩定後再試";
@@ -4746,9 +4944,8 @@
 
       const type = isConvert ? "行程" : state.formType || "行程";
       const submitLabel = isEdit ? "儲存修改" : isConvert ? "加入行程" : "新增";
-      const dates = getTripDateOptions();
-      const fallbackDate = state.selectedDate || dates[0] || "";
-      const selectedDate = item.date || fallbackDate;
+      const selectedDate = getFormDefaultDate(item);
+      const dates = getFormDateOptions(selectedDate);
       const dateOptions = dates.length
         ? dates.map((date) => `<option value="${attr(date)}" ${selectedDate === date ? "selected" : ""}>${escapeHtml(formatDateLabel(date))}</option>`).join("")
         : `<option value="${attr(selectedDate)}">${escapeHtml(selectedDate || "未設定日期")}</option>`;
@@ -4795,7 +4992,7 @@
             <p class="form-help">
               ${isFavorite
                 ? "快速收藏只需要填標題、分類跟地址；其他資訊可以之後再補"
-                : "快速新增只需要填日期、開始時間、標題、分類跟地址；其他資訊收在更多設定"}
+                : "快速新增只需要填日期、標題、分類跟地址；時間可空白，其他資訊收在更多設定"}
             </p>
 
             <form class="form-grid-full" data-action="submit-form">
@@ -4969,6 +5166,149 @@
       }
     }
 
+
+    function clearQuickActionSuppressSoon() {
+      window.clearTimeout(quickActionSuppressTimer);
+      quickActionSuppressTimer = window.setTimeout(() => {
+        quickActionSuppressClick = false;
+      }, 520);
+    }
+
+    function closeQuickActionMenu() {
+      document.querySelectorAll(".quick-action-backdrop, .quick-action-menu").forEach((node) => node.remove());
+      document.querySelectorAll(".quick-pressed").forEach((node) => node.classList.remove("quick-pressed"));
+    }
+
+    function placeQuickActionMenu(menu, x, y) {
+      const margin = 12;
+      const menuWidth = Math.min(176, window.innerWidth - margin * 2);
+      menu.style.width = `${menuWidth}px`;
+      menu.style.left = "0px";
+      menu.style.top = "0px";
+      document.body.appendChild(menu);
+
+      const rect = menu.getBoundingClientRect();
+      const safeBottom = 82;
+      let left = x + 10;
+      let top = y + 10;
+
+      if (left + rect.width > window.innerWidth - margin) left = window.innerWidth - rect.width - margin;
+      if (left < margin) left = margin;
+      if (top + rect.height > window.innerHeight - safeBottom) top = y - rect.height - 10;
+      if (top < margin) top = margin;
+
+      menu.style.left = `${Math.round(left)}px`;
+      menu.style.top = `${Math.round(top)}px`;
+    }
+
+    function showStopQuickActionMenu(stopIdValue, x, y, sourceElement) {
+      const stop = findStopById(stopIdValue);
+      if (!stop) return;
+
+      closeQuickActionMenu();
+      quickActionSuppressClick = true;
+      clearQuickActionSuppressSoon();
+      if (sourceElement) sourceElement.classList.add("quick-pressed");
+
+      const backdrop = document.createElement("div");
+      backdrop.className = "quick-action-backdrop";
+      backdrop.addEventListener("click", closeQuickActionMenu);
+      document.body.appendChild(backdrop);
+
+      const menu = document.createElement("div");
+      menu.className = "quick-action-menu";
+      menu.setAttribute("role", "menu");
+      menu.innerHTML = `
+        <div class="quick-action-head">
+          <div class="quick-action-title">${escapeHtml(stop.title)}</div>
+          <div class="quick-action-meta">${escapeHtml([stop.time || "--:--", stop.category || "行程"].filter(Boolean).join("｜"))}</div>
+        </div>
+        <button class="quick-action-button" type="button" data-quick-action="edit">修改<span class="quick-action-arrow">›</span></button>
+        <button class="quick-action-button" type="button" data-quick-action="nav">導航<span class="quick-action-arrow">›</span></button>
+        <button class="quick-action-button danger" type="button" data-quick-action="delete">刪除<span class="quick-action-arrow">›</span></button>
+      `;
+
+      menu.querySelectorAll("[data-quick-action]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const action = button.dataset.quickAction;
+          closeQuickActionMenu();
+
+          if (action === "edit") {
+            if (!requireEditMode()) return;
+            openForm("edit", "行程", stopId(stop));
+            return;
+          }
+
+          if (action === "nav") {
+            window.open(buildCurrentLocationDirectionsUrl(stop), "_blank", "noopener,noreferrer");
+            return;
+          }
+
+          if (action === "delete") {
+            if (!requireEditMode()) return;
+            const ok = confirm(`確定要刪除這筆行程？\n\n${stop.date || ""} ${stop.time || ""}\n${stop.title}\n\n刪除後會從 Google Sheet 移除。`);
+            if (!ok) return;
+            sendWrite("delete", { id: stopId(stop), type: "行程", title: stop.title });
+          }
+        });
+      });
+
+      placeQuickActionMenu(menu, x, y);
+    }
+
+    function bindStopQuickActions() {
+      let longPressTimer = 0;
+      let startX = 0;
+      let startY = 0;
+      let targetElement = null;
+      const longPressMs = 520;
+      const moveTolerance = 12;
+
+      app.querySelectorAll(".today-item[data-stop-id], .timeline-item[data-stop-id], .stop-card[data-stop-id]").forEach((element) => {
+        element.addEventListener("contextmenu", (event) => {
+          if (event.target.closest("a, button, input, select, textarea")) return;
+          event.preventDefault();
+        });
+
+        element.addEventListener("pointerdown", (event) => {
+          if (event.button !== undefined && event.button !== 0) return;
+          if (event.target.closest("a, button, input, select, textarea")) return;
+          closeQuickActionMenu();
+          targetElement = element;
+          startX = event.clientX;
+          startY = event.clientY;
+          window.clearTimeout(longPressTimer);
+          longPressTimer = window.setTimeout(() => {
+            if (!targetElement) return;
+            showStopQuickActionMenu(element.dataset.stopId || "", startX, startY, element);
+          }, longPressMs);
+        });
+
+        element.addEventListener("pointermove", (event) => {
+          if (!targetElement) return;
+          const dx = Math.abs(event.clientX - startX);
+          const dy = Math.abs(event.clientY - startY);
+          if (dx > moveTolerance || dy > moveTolerance) {
+            window.clearTimeout(longPressTimer);
+            targetElement = null;
+          }
+        });
+
+        ["pointerup", "pointercancel", "pointerleave"].forEach((eventName) => {
+          element.addEventListener(eventName, () => {
+            window.clearTimeout(longPressTimer);
+            targetElement = null;
+          });
+        });
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeQuickActionMenu();
+      }, { once: true });
+    }
+
     function render() {
       ensureSelectedDate();
 
@@ -5013,14 +5353,20 @@
 
         if (action === "set-screen") {
           element.addEventListener("click", () => {
-            state.previousScreen = element.dataset.screen;
-            state.screen = element.dataset.screen;
+            const nextScreen = element.dataset.screen;
+            const isChangingScreen = state.screen !== nextScreen;
+            state.previousScreen = nextScreen;
+            state.screen = nextScreen;
             state.selectedStopId = "";
             state.selectedFavoriteId = "";
             state.formMode = "";
             state.formType = "";
             state.formId = "";
             state.formReturnScreen = "";
+            if (isChangingScreen) {
+              state.message = "";
+              state.syncStatus = "";
+            }
             render();
             window.scrollTo({ top: 0, behavior: "smooth" });
           });
@@ -5028,8 +5374,14 @@
 
         if (action === "select-date") {
           element.addEventListener("click", () => {
+            const rail = element.closest(".date-rail");
+            state.dateRailScrollLeft = rail ? rail.scrollLeft : state.dateRailScrollLeft;
             state.selectedDate = element.dataset.date;
             render();
+            requestAnimationFrame(() => {
+              const newRail = app.querySelector(".date-rail");
+              if (newRail) newRail.scrollLeft = state.dateRailScrollLeft;
+            });
           });
         }
 
@@ -5064,7 +5416,12 @@
           });
         }
         if (action === "open-stop") {
-          element.addEventListener("click", () => {
+          element.addEventListener("click", (event) => {
+            if (quickActionSuppressClick) {
+              event.preventDefault();
+              event.stopPropagation();
+              return;
+            }
             state.previousScreen = state.screen === "detail" ? state.previousScreen : state.screen;
             state.selectedStopId = element.dataset.stopId || "";
             state.selectedFavoriteId = "";
@@ -5161,19 +5518,38 @@
             const form = event.currentTarget;
             const data = Object.fromEntries(new FormData(form).entries());
             const payload = {
-              id: data.id || "",
-              type: data.type || "行程",
-              date: data.date || "",
-              time: data.time || "",
-              endTime: data.endTime || "",
-              title: data.title || "",
-              category: data.category || "景點",
-              area: data.area || "",
-              address: data.address || "",
-              notice: data.notice || "",
-              imageUrl: data.imageUrl || "",
-              priority: data.priority || ""
+              id: String(data.id || "").trim(),
+              type: String(data.type || "行程").trim(),
+              date: String(data.date || "").trim(),
+              time: String(data.time || "").trim(),
+              endTime: String(data.endTime || "").trim(),
+              title: String(data.title || "").trim(),
+              category: String(data.category || "景點").trim() || "景點",
+              area: String(data.area || "").trim(),
+              address: String(data.address || "").trim(),
+              notice: String(data.notice || "").trim(),
+              imageUrl: String(data.imageUrl || "").trim(),
+              priority: String(data.priority || "").trim()
             };
+
+            const payloadType = normalizeTypeValue(payload.type);
+            if (payloadType === "itinerary" && !payload.date) {
+              state.message = "請先選擇日期";
+              render();
+              return;
+            }
+            if (!payload.title) {
+              state.message = "請先輸入標題";
+              render();
+              return;
+            }
+            const startMinutes = toMinutes(payload.time);
+            const endMinutes = toMinutes(payload.endTime);
+            if (startMinutes !== null && endMinutes !== null && endMinutes < startMinutes) {
+              state.message = "結束時間不能早於開始時間";
+              render();
+              return;
+            }
 
             if (state.formMode === "convert") {
               sendConvertFavorite(payload);
@@ -5341,6 +5717,8 @@
 
       });
 
+      bindStopQuickActions();
+
       app.querySelectorAll(".expense-settings-pop").forEach((details) => {
         details.addEventListener("toggle", () => {
           state.moneySettingsOpen = details.open;
@@ -5348,15 +5726,26 @@
       });
     }
 
-    async function loadRows(force = false) {
+    async function loadRows(force = false, options = {}) {
+      if (rowsLoading) return;
+      rowsLoading = true;
+
+      const silent = Boolean(options.silent);
+      const previousMessage = state.message;
+      const previousSyncStatus = state.syncStatus;
+
       state.loading = true;
-      state.message = force ? "正在同步 Google Sheet 最新資料" : "";
-      render();
+      if (force && !silent) {
+        state.message = "正在同步 Google Sheet 最新資料";
+      } else if (!force && !silent) {
+        state.message = "";
+      }
+      if (!silent) render();
 
       try {
         const controller = new AbortController();
         const timeout = window.setTimeout(() => controller.abort(), 12000);
-        const url = force ? `${SHEET_CSV_URL}${SHEET_CSV_URL.includes("?") ? "&" : "?"}_=${Date.now()}` : SHEET_CSV_URL;
+        const url = force ? SHEET_CSV_URL + (SHEET_CSV_URL.includes("?") ? "&" : "?") + "_=" + Date.now() : SHEET_CSV_URL;
 
         const response = await fetch(url, { cache: "no-store", signal: controller.signal });
         window.clearTimeout(timeout);
@@ -5369,31 +5758,47 @@
 
         state.rows = parsed;
         localStorage.setItem("trip-html:google-sheet-live-v1", JSON.stringify(parsed));
-        state.message = force ? "已同步最新資料" : "";
+
+        if (force && silent) {
+          state.message = previousMessage === "已送出" || previousMessage === "已先在本機顯示" || previousMessage === "已先從本機移除"
+            ? ""
+            : previousMessage;
+          state.syncStatus = "已自動同步最新資料";
+        } else {
+          state.message = force ? "已同步最新資料" : "";
+        }
       } catch (error) {
         const cached = localStorage.getItem("trip-html:google-sheet-live-v1");
         if (cached) {
           state.rows = JSON.parse(cached).map(normalizeRow);
-          state.message = "目前顯示上次儲存的行程";
+          state.message = silent ? previousMessage : "目前顯示上次儲存的行程";
+          state.syncStatus = silent ? (previousSyncStatus || "自動同步失敗，暫用本機資料") : state.syncStatus;
         } else {
           state.rows = SAMPLE_ROWS;
-          state.message = "目前暫時顯示內建行程，雲端資料連線後會自動更新";
+          state.message = silent ? previousMessage : "目前暫時顯示內建行程，雲端資料連線後會自動更新";
+          state.syncStatus = silent ? (previousSyncStatus || "自動同步失敗") : state.syncStatus;
         }
       } finally {
+        rowsLoading = false;
         state.loading = false;
         ensureSelectedDate();
         render();
 
-        if (state.message === "已同步最新資料") {
+        if (state.message === "已同步最新資料" || state.syncStatus === "已自動同步最新資料") {
           setTimeout(() => {
-            if (state.message === "已同步最新資料") {
-              state.message = "";
-              render();
-            }
+            if (state.message === "已同步最新資料") state.message = "";
+            if (state.syncStatus === "已自動同步最新資料") state.syncStatus = "";
+            render();
           }, 1800);
         }
       }
     }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") scheduleResumeSync();
+    });
+
+    window.addEventListener("focus", scheduleResumeSync);
 
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
@@ -5401,6 +5806,7 @@
       });
     }
 
+    lastResumeSyncAt = Date.now();
     render();
     loadRows(false);
     maybeAutoUpdateFxRate();
