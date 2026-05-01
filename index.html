@@ -2966,7 +2966,254 @@
       transform: translate(22%, 22%);
     }
 
-  </style>
+  
+
+    /* Favorite page place search */
+    .favorite-search-card {
+      border: 1px solid var(--line-soft);
+      border-radius: 22px;
+      background: #fff;
+      padding: 14px;
+      margin-bottom: 16px;
+      box-shadow: none;
+      overflow: hidden;
+    }
+
+    .favorite-search-head {
+      display: grid;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+
+    .favorite-search-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 17px;
+      font-weight: 950;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .favorite-search-sub {
+      color: var(--light);
+      font-size: 11.5px;
+      font-weight: 760;
+      line-height: 1.45;
+    }
+
+    .favorite-search-form {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--card-soft);
+      padding: 5px;
+    }
+
+    .favorite-search-input-wrap {
+      position: relative;
+      min-width: 0;
+    }
+
+    .favorite-search-input-wrap::before {
+      content: "⌕";
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--light);
+      font-size: 16px;
+      font-weight: 950;
+      pointer-events: none;
+    }
+
+    .favorite-search-form .field {
+      min-width: 0;
+      min-height: 40px;
+      border: 0;
+      border-radius: 13px;
+      background: transparent;
+      padding-left: 34px;
+      box-shadow: none;
+      font-size: 13.5px;
+      font-weight: 850;
+    }
+
+    .favorite-search-form .field:focus {
+      background: #fff;
+    }
+
+    .favorite-search-form .primary-btn {
+      min-height: 38px;
+      border: 1px solid rgba(47, 128, 237, 0.14);
+      border-radius: 13px;
+      background: #fff;
+      color: var(--primary-dark);
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 950;
+      white-space: nowrap;
+      box-shadow: none;
+    }
+
+    .favorite-search-helper {
+      margin-top: 8px;
+      color: var(--light);
+      font-size: 11px;
+      font-weight: 760;
+      line-height: 1.45;
+    }
+
+    .favorite-search-utility {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .favorite-search-utility .mini-action {
+      padding: 7px 10px;
+      font-size: 11px;
+    }
+
+    .favorite-search-status {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.55;
+    }
+
+    .favorite-search-status.error {
+      color: #92400e;
+    }
+
+    .favorite-search-results {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .favorite-search-result {
+      border: 1px solid var(--line-soft);
+      border-radius: 18px;
+      background: #fff;
+      padding: 12px;
+      box-shadow: none;
+      overflow: hidden;
+    }
+
+    .favorite-search-result-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 950;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+
+    .favorite-search-result-address {
+      display: -webkit-box;
+      overflow: hidden;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11.5px;
+      font-weight: 700;
+      line-height: 1.45;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      word-break: break-word;
+    }
+
+    .favorite-search-result-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .favorite-search-pill {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      max-width: 100%;
+      min-height: 22px;
+      border-radius: 999px;
+      background: var(--card-soft);
+      color: var(--muted);
+      padding: 0 8px;
+      font-size: 10.5px;
+      font-weight: 850;
+      margin-top: 8px;
+    }
+
+    .favorite-search-google-fallback {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 11.5px;
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .favorite-search-google-fallback span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .favorite-search-google-fallback a {
+      flex: 0 0 auto;
+      border: 1px solid rgba(47, 128, 237, 0.16);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--primary-dark);
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .favorite-search-result-actions .card-button[disabled] {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 390px) {
+      .favorite-search-card {
+        padding: 13px;
+      }
+
+      .favorite-search-form {
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .favorite-search-form .primary-btn {
+        width: auto;
+      }
+
+      .favorite-search-utility,
+      .favorite-search-google-fallback {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .favorite-search-google-fallback span {
+        white-space: normal;
+      }
+
+      .favorite-search-result-actions {
+        grid-template-columns: 1fr;
+      }
+    }
+</style>
 </head>
 
 <body>
@@ -3122,7 +3369,11 @@
       syncStatus: "",
       editMode: localStorage.getItem(EDIT_MODE_KEY) === "ON",
       query: "",
-      category: "全部"
+      category: "全部",
+      favoriteSearchQuery: "",
+      favoriteSearchResults: [],
+      favoriteSearchLoading: false,
+      favoriteSearchError: ""
     };
 
     let quickActionSuppressClick = false;
@@ -3132,6 +3383,8 @@
     let postWriteSyncFollowupTimer = 0;
     let resumeSyncTimer = 0;
     let lastResumeSyncAt = 0;
+    let favoriteSearchDebounceTimer = 0;
+    let favoriteSearchRequestSeq = 0;
 
     const app = document.getElementById("app");
 
@@ -3847,6 +4100,166 @@
       params.set("destination", getDestinationQuery(place));
       params.set("travelmode", "transit");
       return `https://www.google.com/maps/dir/?api=1&${params.toString()}`;
+    }
+
+    function compactText(value, maxLength = 90) {
+      const text = String(value || "").trim();
+      return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+    }
+
+    function guessFavoriteSearchCategory(item) {
+      const text = `${item?.class || ""} ${item?.type || ""} ${item?.category || ""}`.toLowerCase();
+      if (/restaurant|food|cafe|bar|pub|fast_food|ice_cream|bakery/.test(text)) return "餐廳";
+      if (/shop|mall|supermarket|convenience|marketplace|department_store/.test(text)) return "購物";
+      if (/hotel|hostel|guest_house|apartment/.test(text)) return "住宿";
+      if (/station|railway|subway|bus|transport|ferry|airport/.test(text)) return "交通";
+      return "景點";
+    }
+
+    function normalizeFavoriteSearchPlace(item) {
+      const displayName = String(item?.display_name || "").trim();
+      const title = String(item?.name || displayName.split(",")[0] || "未命名地點").trim();
+      const address = displayName || title;
+      const lat = Number(item?.lat);
+      const lng = Number(item?.lon);
+      return {
+        title,
+        address,
+        category: guessFavoriteSearchCategory(item),
+        lat: Number.isFinite(lat) ? lat : null,
+        lng: Number.isFinite(lng) ? lng : null,
+        sourceId: `${item?.osm_type || ""}_${item?.osm_id || ""}`
+      };
+    }
+
+    function buildFavoriteSearchGoogleUrl(query) {
+      const text = String(query || "").trim();
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(text || "大阪 京都")}`;
+    }
+
+    function buildFavoriteSearchMapsUrl(place) {
+      if (place?.lat && place?.lng) {
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.lat},${place.lng}`)}`;
+      }
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place?.title || ""} ${place?.address || ""}`.trim())}`;
+    }
+
+    function isFavoriteSearchResultAlreadySaved(place) {
+      const title = String(place?.title || "").trim().toLowerCase();
+      const address = String(place?.address || "").trim().toLowerCase();
+      return getFavoritePlaces().some((item) => {
+        const itemTitle = String(item.title || "").trim().toLowerCase();
+        const itemAddress = String(item.address || "").trim().toLowerCase();
+        return itemTitle === title && (!address || !itemAddress || itemAddress === address);
+      });
+    }
+
+    function favoriteSearchPlainLength(value) {
+      return String(value || "").trim().replace(/\s+/g, "").length;
+    }
+
+    function favoriteSearchQueries(rawQuery) {
+      const query = String(rawQuery || "").trim().replace(/\s+/g, " ");
+      if (!query) return [];
+      const hasArea = /大阪|京都|日本|Osaka|Kyoto|Japan|Namba|Umeda|Shinsaibashi|Dotonbori|Gion|Kawaramachi|Arashiyama|Nishiki/i.test(query);
+      const queries = [query];
+      if (!hasArea) {
+        queries.push(`${query} 大阪`);
+        queries.push(`${query} 京都`);
+        queries.push(`${query} Osaka`);
+        queries.push(`${query} Kyoto`);
+      }
+      return [...new Set(queries)].slice(0, 5);
+    }
+
+    async function fetchFavoriteSearchResults(query) {
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=jp&accept-language=zh-TW,zh,en,ja&q=${encodeURIComponent(query)}`;
+      const response = await fetch(url, { headers: { "Accept": "application/json" } });
+      if (!response.ok) throw new Error("search failed");
+      return response.json();
+    }
+
+    async function runFavoritePlaceSearch(options = {}) {
+      const query = String(state.favoriteSearchQuery || "").trim();
+      const isAuto = options.auto === true;
+      const seq = ++favoriteSearchRequestSeq;
+
+      if (!query) {
+        state.favoriteSearchError = isAuto ? "" : "請先輸入想收藏的地點";
+        state.favoriteSearchResults = [];
+        state.favoriteSearchLoading = false;
+        render();
+        return;
+      }
+
+      if (isAuto && favoriteSearchPlainLength(query) < 2) {
+        state.favoriteSearchError = "";
+        state.favoriteSearchResults = [];
+        state.favoriteSearchLoading = false;
+        return;
+      }
+
+      state.favoriteSearchLoading = !isAuto;
+      state.favoriteSearchError = "";
+      if (!isAuto) state.favoriteSearchResults = [];
+      if (!isAuto) render();
+
+      try {
+        const seen = new Set();
+        const results = [];
+        const queries = favoriteSearchQueries(query);
+        const responses = await Promise.allSettled(queries.map(fetchFavoriteSearchResults));
+        if (seq !== favoriteSearchRequestSeq) return;
+
+        responses.forEach((result) => {
+          if (result.status !== "fulfilled") return;
+          const items = Array.isArray(result.value) ? result.value : [];
+          items.map(normalizeFavoriteSearchPlace)
+            .filter((item) => item.title)
+            .forEach((item) => {
+              const key = `${item.title}__${item.address}`.toLowerCase();
+              if (seen.has(key)) return;
+              seen.add(key);
+              results.push(item);
+            });
+        });
+
+        state.favoriteSearchResults = results.slice(0, 6);
+        if (!state.favoriteSearchResults.length) {
+          state.favoriteSearchError = "找不到結果，可以多打一點名稱，或加上大阪 / 京都 / 英文名";
+        }
+      } catch (error) {
+        if (seq !== favoriteSearchRequestSeq) return;
+        state.favoriteSearchError = "搜尋失敗，請確認網路後再試";
+      } finally {
+        if (seq !== favoriteSearchRequestSeq) return;
+        state.favoriteSearchLoading = false;
+        render();
+        if (isAuto && state.screen === "favorites") {
+          requestAnimationFrame(() => {
+            const input = app.querySelector("[data-action='favorite-place-search-input']");
+            if (input) {
+              input.focus();
+              input.setSelectionRange(input.value.length, input.value.length);
+            }
+          });
+        }
+      }
+    }
+
+    function scheduleFavoritePlaceSearch() {
+      window.clearTimeout(favoriteSearchDebounceTimer);
+      const query = String(state.favoriteSearchQuery || "").trim();
+      favoriteSearchRequestSeq += 1;
+      if (favoriteSearchPlainLength(query) < 2) {
+        state.favoriteSearchLoading = false;
+        state.favoriteSearchError = "";
+        state.favoriteSearchResults = [];
+        return;
+      }
+      favoriteSearchDebounceTimer = window.setTimeout(() => {
+        runFavoritePlaceSearch({ auto: true });
+      }, 520);
     }
 
     
@@ -4756,6 +5169,58 @@
       `;
     }
 
+    function favoriteSearchResultHtml(place, index) {
+      const saved = isFavoriteSearchResultAlreadySaved(place);
+      return `
+        <article class="favorite-search-result">
+          <h3 class="favorite-search-result-title">${escapeHtml(place.title)}</h3>
+          <div class="favorite-search-result-address">${escapeHtml(compactText(place.address, 120))}</div>
+          <span class="favorite-search-pill">${escapeHtml(place.category || "景點")}</span>
+          <div class="favorite-search-result-actions">
+            <a class="card-button outline" href="${attr(buildFavoriteSearchMapsUrl(place))}" target="_blank" rel="noreferrer">查看地點</a>
+            <button class="card-button filled" data-action="add-search-favorite" data-search-index="${attr(index)}" type="button" ${saved ? "disabled" : ""}>${saved ? "已收藏" : "加入收藏"}</button>
+          </div>
+        </article>
+      `;
+    }
+
+    function favoriteSearchPanelHtml() {
+      const hasSearchState = Boolean(state.favoriteSearchQuery || state.favoriteSearchResults.length || state.favoriteSearchError);
+      return `
+        <section class="favorite-search-card">
+          <div class="favorite-search-head">
+            <h2 class="favorite-search-title">搜尋收藏地點</h2>
+            <div class="favorite-search-sub">先找地點，再加入收藏</div>
+          </div>
+          <div class="favorite-search-form">
+            <div class="favorite-search-input-wrap">
+              <input class="field" data-action="favorite-place-search-input" value="${attr(state.favoriteSearchQuery)}" placeholder="搜尋景點、餐廳、店家" autocomplete="off">
+            </div>
+            <button class="primary-btn" data-action="favorite-place-search-submit" type="button" ${state.favoriteSearchLoading ? "disabled" : ""}>${state.favoriteSearchLoading ? "搜尋中" : "搜尋"}</button>
+          </div>
+          <div class="favorite-search-helper">可搜尋大阪、京都景點跟店家</div>
+          ${hasSearchState ? `
+            <div class="favorite-search-utility">
+              ${(favoriteSearchPlainLength(state.favoriteSearchQuery) >= 2 && !state.favoriteSearchLoading) ? `
+                <div class="favorite-search-google-fallback">
+                  <span>結果不準時，用 Google Maps 查同一個關鍵字</span>
+                  <a href="${attr(buildFavoriteSearchGoogleUrl(state.favoriteSearchQuery))}" target="_blank" rel="noreferrer">Google Maps</a>
+                </div>
+              ` : `<span></span>`}
+              <button class="mini-action" data-action="favorite-place-search-clear" type="button">清除</button>
+            </div>
+          ` : ""}
+          ${state.favoriteSearchLoading ? `<div class="favorite-search-status">搜尋中...</div>` : ""}
+          ${state.favoriteSearchError ? `<div class="favorite-search-status error">${escapeHtml(state.favoriteSearchError)}</div>` : ""}
+          ${state.favoriteSearchResults.length ? `
+            <div class="favorite-search-results">
+              ${state.favoriteSearchResults.map(favoriteSearchResultHtml).join("")}
+            </div>
+          ` : ""}
+        </section>
+      `;
+    }
+
     function favoritesPageHtml() {
       const favoritePlaces = getFavoritePlaces();
 
@@ -4763,6 +5228,7 @@
         ${topHtml("收藏")}
         <div class="page content">
           ${messageHtml()}
+          ${favoriteSearchPanelHtml()}
           <div class="section-title">
             <div class="section-title-group">
               <h2>候選地點</h2>
@@ -4783,6 +5249,7 @@
         </div>
       `;
     }
+
 
 
     function moneyPageHtml() {
@@ -5599,6 +6066,78 @@
             render();
           });
         }
+
+        if (action === "favorite-place-search-input") {
+          element.addEventListener("input", (event) => {
+            state.favoriteSearchQuery = event.target.value;
+            scheduleFavoritePlaceSearch();
+          });
+          element.addEventListener("keydown", (event) => {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            window.clearTimeout(favoriteSearchDebounceTimer);
+            state.favoriteSearchQuery = event.target.value;
+            runFavoritePlaceSearch({ manual: true });
+          });
+        }
+
+        if (action === "favorite-place-search-submit") {
+          element.addEventListener("click", () => {
+            window.clearTimeout(favoriteSearchDebounceTimer);
+            const input = app.querySelector("[data-action='favorite-place-search-input']");
+            if (input) state.favoriteSearchQuery = input.value;
+            runFavoritePlaceSearch({ manual: true });
+          });
+        }
+
+        if (action === "favorite-place-search-clear") {
+          element.addEventListener("click", () => {
+            window.clearTimeout(favoriteSearchDebounceTimer);
+            favoriteSearchRequestSeq += 1;
+            state.favoriteSearchQuery = "";
+            state.favoriteSearchResults = [];
+            state.favoriteSearchError = "";
+            state.favoriteSearchLoading = false;
+            render();
+          });
+        }
+
+        if (action === "add-search-favorite") {
+          element.addEventListener("click", () => {
+            if (!requireEditMode()) return;
+            const index = Number(element.dataset.searchIndex || -1);
+            const place = state.favoriteSearchResults[index];
+            if (!place) return;
+            if (isFavoriteSearchResultAlreadySaved(place)) {
+              state.message = "這個地點已經在收藏裡";
+              render();
+              return;
+            }
+            const editedTitle = prompt("收藏名稱", place.title || "");
+            if (editedTitle === null) return;
+            const title = String(editedTitle || "").trim();
+            if (!title) {
+              state.message = "收藏名稱不能空白";
+              render();
+              return;
+            }
+            window.clearTimeout(favoriteSearchDebounceTimer);
+            favoriteSearchRequestSeq += 1;
+            state.favoriteSearchQuery = "";
+            state.favoriteSearchResults = [];
+            state.favoriteSearchError = "";
+            state.favoriteSearchLoading = false;
+            sendWrite("create", {
+              type: "收藏",
+              title,
+              category: place.category || "景點",
+              address: place.address || "",
+              notice: "",
+              priority: ""
+            });
+          });
+        }
+
         if (action === "open-stop") {
           element.addEventListener("click", (event) => {
             if (quickActionSuppressClick) {
