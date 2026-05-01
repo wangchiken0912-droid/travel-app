@@ -3382,8 +3382,31 @@
     let lastResumeSyncAt = 0;
     let favoriteSearchDebounceTimer = 0;
     let favoriteSearchRequestSeq = 0;
+    let favoriteSearchComposing = false;
+    let favoriteSearchImeClickBlockUntil = 0;
 
     const app = document.getElementById("app");
+
+    function isFavoriteSearchInputElement(target) {
+      return Boolean(target?.closest?.("[data-action='favorite-place-search-input']"));
+    }
+
+    function shouldBlockFavoriteSearchImeGhostTap(event) {
+      if (state.screen !== "favorites") return false;
+      if (isFavoriteSearchInputElement(event.target)) return false;
+      return favoriteSearchComposing || Date.now() < favoriteSearchImeClickBlockUntil;
+    }
+
+    function blockFavoriteSearchImeGhostTap(event) {
+      if (!shouldBlockFavoriteSearchImeGhostTap(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
+    }
+
+    function armFavoriteSearchImeTapBlock(duration = 720) {
+      favoriteSearchImeClickBlockUntil = Math.max(favoriteSearchImeClickBlockUntil, Date.now() + duration);
+    }
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -5191,7 +5214,7 @@
           </div>
           <div class="favorite-search-form">
             <div class="favorite-search-input-wrap">
-              <input class="field" data-action="favorite-place-search-input" value="${attr(state.favoriteSearchQuery)}" placeholder="搜尋景點、餐廳、店家" autocomplete="off">
+              <input class="field" data-action="favorite-place-search-input" value="${attr(state.favoriteSearchQuery)}" placeholder="搜尋景點、餐廳、店家" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
             </div>
             <button class="primary-btn" data-action="favorite-place-search-submit" type="button" ${state.favoriteSearchLoading ? "disabled" : ""}>${state.favoriteSearchLoading ? "搜尋中" : "搜尋"}</button>
           </div>
@@ -6065,19 +6088,26 @@
         }
 
         if (action === "favorite-place-search-input") {
+          element.addEventListener("compositionstart", () => {
+            favoriteSearchComposing = true;
+            armFavoriteSearchImeTapBlock(1600);
+          });
+          element.addEventListener("compositionend", (event) => {
+            state.favoriteSearchQuery = event.target.value;
+            armFavoriteSearchImeTapBlock(900);
+            window.setTimeout(() => { favoriteSearchComposing = false; }, 80);
+          });
           element.addEventListener("input", (event) => {
             window.clearTimeout(favoriteSearchDebounceTimer);
-            favoriteSearchRequestSeq += 1;
             state.favoriteSearchQuery = event.target.value;
-            if (!String(state.favoriteSearchQuery || "").trim()) {
-              state.favoriteSearchResults = [];
-              state.favoriteSearchError = "";
-              state.favoriteSearchLoading = false;
-              render();
-            }
+
+            // Manual search mode: do not re-render while typing or selecting IME candidate words.
+            // Re-rendering here would replace the input element and make Chinese/Japanese selection jump.
+            if (event.isComposing || favoriteSearchComposing) return;
           });
           element.addEventListener("keydown", (event) => {
             if (event.key !== "Enter") return;
+            if (event.isComposing || favoriteSearchComposing || event.keyCode === 229) return;
             event.preventDefault();
             window.clearTimeout(favoriteSearchDebounceTimer);
             state.favoriteSearchQuery = event.target.value;
@@ -6086,7 +6116,11 @@
         }
 
         if (action === "favorite-place-search-submit") {
-          element.addEventListener("click", () => {
+          element.addEventListener("click", (event) => {
+            if (favoriteSearchComposing || Date.now() < favoriteSearchImeClickBlockUntil) {
+              event.preventDefault();
+              return;
+            }
             window.clearTimeout(favoriteSearchDebounceTimer);
             const input = app.querySelector("[data-action='favorite-place-search-input']");
             if (input) state.favoriteSearchQuery = input.value;
@@ -6528,6 +6562,10 @@
         }
       }
     }
+
+    ["pointerdown", "pointerup", "touchstart", "touchend", "mousedown", "mouseup", "click"].forEach((eventName) => {
+      app.addEventListener(eventName, blockFavoriteSearchImeGhostTap, true);
+    });
 
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") scheduleResumeSync();
