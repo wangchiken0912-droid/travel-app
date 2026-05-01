@@ -2903,6 +2903,358 @@
       line-height: 1.55;
     }
 
+
+    /* Simple Refined UI Pack - global density and visual polish */
+    :root {
+      --radius-xl: 22px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --shadow: 0 10px 28px rgba(15, 23, 42, 0.045);
+      --shadow-soft: 0 5px 14px rgba(15, 23, 42, 0.035);
+    }
+
+    .app {
+      padding-bottom: calc(68px + var(--safe-bottom));
+    }
+
+    .top {
+      padding: 14px 18px 9px;
+      border-bottom-color: rgba(229, 231, 235, 0.58);
+      box-shadow: none;
+    }
+
+    .trip-title {
+      font-size: 21px;
+      line-height: 1.15;
+    }
+
+    .trip-subtitle {
+      margin-top: 4px;
+      font-size: 11.5px;
+      color: var(--light);
+    }
+
+    .content {
+      padding-top: 12px;
+    }
+
+    .section-title {
+      margin: 16px 0 9px;
+    }
+
+    .section-title h2 {
+      font-size: 17px;
+      letter-spacing: -0.02em;
+    }
+
+    .hero,
+    .next-card,
+    .stop-card,
+    .map-card,
+    .info-card,
+    .search-card,
+    .hotel-card,
+    .money-card {
+      border-color: var(--line-soft) !important;
+      box-shadow: none !important;
+    }
+
+    .hero {
+      border-radius: 16px;
+    }
+
+    .next-card {
+      border-radius: 20px;
+      background: #fff;
+    }
+
+    .next-card-inner {
+      padding: 14px;
+    }
+
+    .next-title {
+      font-size: 22px;
+    }
+
+    .today-list {
+      border-top: 1px solid var(--line-soft);
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .timeline-list {
+      margin-top: 6px;
+      padding-top: 4px;
+      border-top: 0;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .today-item {
+      padding: 11px 0;
+    }
+
+    .today-title,
+    .timeline-title {
+      font-size: 14.5px;
+      line-height: 1.32;
+    }
+
+    .today-address,
+    .timeline-address {
+      color: var(--muted);
+      font-size: 11.2px;
+    }
+
+    .timeline-item {
+      grid-template-columns: 48px 22px 1fr;
+      gap: 8px;
+      min-height: 68px;
+    }
+
+    .timeline-content {
+      padding-bottom: 10px;
+    }
+
+    .timeline-item:first-child .timeline-time,
+    .timeline-item:first-child .timeline-node,
+    .timeline-item:first-child .timeline-card {
+      margin-top: 2px;
+    }
+
+    .pill,
+    .badge,
+    .date-chip,
+    .mini-action,
+    .expense-pill-simple {
+      border-color: var(--line-soft);
+      box-shadow: none;
+    }
+
+    .date-rail {
+      top: 70px;
+      padding-top: 7px;
+      padding-bottom: 8px;
+      border-bottom-color: rgba(229, 231, 235, 0.58);
+    }
+
+    .date-chip {
+      padding: 7px 11px;
+      font-size: 11.5px;
+    }
+
+    .primary-btn,
+    .secondary-btn,
+    .card-button,
+    .ghost-btn,
+    .edit-btn,
+    .mini-action {
+      box-shadow: none !important;
+    }
+
+    .primary-btn,
+    .secondary-btn {
+      min-height: 40px;
+      border-radius: 14px;
+      font-size: 12.5px;
+    }
+
+    .card-button {
+      min-height: 36px;
+      border-radius: 13px;
+      line-height: 36px;
+      font-size: 11.8px;
+    }
+
+    .status-message,
+    .notice,
+    .conflict-warning {
+      border-radius: 14px;
+      box-shadow: none;
+      font-size: 11.8px;
+      line-height: 1.55;
+    }
+
+    .form-card {
+      border-top: 1px solid var(--line-soft);
+      border-bottom: 1px solid var(--line-soft);
+      padding: 14px 0 16px;
+    }
+
+    .form-grid-full {
+      gap: 10px;
+    }
+
+    .form-label {
+      gap: 5px;
+      color: var(--light);
+      font-size: 10.5px;
+      letter-spacing: 0.035em;
+    }
+
+    .form-field,
+    .form-select,
+    .form-textarea,
+    .field {
+      min-height: 40px;
+      border-color: var(--line-soft);
+      border-radius: 13px;
+      background: #fff;
+      font-size: 13.2px;
+      box-shadow: none;
+    }
+
+    .form-field,
+    .form-select {
+      padding: 9px 11px;
+    }
+
+    .form-textarea {
+      padding: 10px 11px;
+    }
+
+    .favorite-search-card {
+      border: 0 !important;
+      border-bottom: 1px solid var(--line-soft) !important;
+      border-radius: 0 !important;
+      padding: 0 0 13px !important;
+      margin-bottom: 14px !important;
+      box-shadow: none !important;
+    }
+
+    .favorite-search-title {
+      font-size: 15.5px !important;
+    }
+
+    .favorite-search-sub,
+    .favorite-search-helper {
+      font-size: 10.5px !important;
+      color: var(--light) !important;
+    }
+
+    .favorite-search-form {
+      border-color: var(--line-soft) !important;
+      border-radius: 15px !important;
+      padding: 3px !important;
+      background: #fff !important;
+    }
+
+    .favorite-search-form .field {
+      min-height: 34px !important;
+      font-size: 12.8px !important;
+    }
+
+    .favorite-search-form .secondary-btn,
+    .favorite-search-form .primary-btn {
+      min-height: 32px !important;
+      border-radius: 11px !important;
+      font-size: 11px !important;
+      padding: 0 10px !important;
+    }
+
+    .favorite-search-result {
+      border-radius: 16px !important;
+      padding: 11px !important;
+      box-shadow: none !important;
+    }
+
+    .favorite-filter-row,
+    .category-filter-row {
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .favorite-filter-chip,
+    .category-filter-chip {
+      min-height: 30px;
+      padding: 0 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+      box-shadow: none;
+    }
+
+    .expense-entry-panel,
+    .expense-simple-panel {
+      padding: 14px 0;
+    }
+
+    .expense-entry-title,
+    .expense-panel-title {
+      font-size: 17px;
+    }
+
+    .visual-amount-input {
+      font-size: 42px;
+    }
+
+    .visual-choice span {
+      min-height: 34px;
+      padding: 0 12px;
+      font-size: 12.2px;
+    }
+
+    .visual-category-grid .visual-choice span {
+      min-height: 48px;
+      border-radius: 15px;
+    }
+
+    .bottom-nav {
+      padding: 4px 10px calc(4px + var(--safe-bottom));
+      border-top-color: rgba(229, 231, 235, 0.65);
+      box-shadow: 0 -8px 22px rgba(15, 23, 42, 0.035);
+    }
+
+    .bottom-nav-inner {
+      gap: 1px;
+    }
+
+    .nav-btn {
+      border-radius: 12px;
+      padding: 4px 3px 3px;
+    }
+
+    .nav-icon {
+      width: 25px;
+      height: 22px;
+      margin-bottom: 1px;
+    }
+
+    .nav-icon svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    .nav-label {
+      font-size: 9.2px;
+    }
+
+    .quick-action-menu {
+      border-radius: 16px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
+    }
+
+    .quick-action-button {
+      min-height: 40px;
+      font-size: 12.5px;
+    }
+
+    @media (max-width: 390px) {
+      .content {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .date-rail {
+        margin-left: -16px;
+        margin-right: -16px;
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .trip-title {
+        font-size: 20px;
+      }
+    }
+
   </style>
 </head>
 
