@@ -8,8 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
-  <!-- UI version: Osaka theme - 大阪都會霓虹白底版 -->
+  <link rel="apple-touch-icon" href="./icon-192.png" />
   <style>
     :root {
       --bg: #ffffff;
@@ -103,13 +102,6 @@
       font-weight: 900;
       line-height: 1.15;
       letter-spacing: -0.02em;
-      word-break: keep-all;
-      line-break: strict;
-      overflow-wrap: normal;
-    }
-
-    .keep-word {
-      white-space: nowrap;
     }
 
     .trip-subtitle {
@@ -1782,24 +1774,6 @@
       white-space: nowrap;
     }
 
-    .person-stat-value span {
-      display: block;
-      margin-top: 3px;
-      color: var(--light);
-      font-size: 10.5px;
-      font-weight: 820;
-      line-height: 1.25;
-    }
-
-    .person-stat-value .person-stat-mini {
-      margin-top: 0;
-      margin-bottom: 3px;
-      color: var(--muted);
-      font-size: 10px;
-      font-weight: 900;
-      letter-spacing: 0.02em;
-    }
-
     .expense-record-tags-simple {
       display: flex;
       flex-wrap: wrap;
@@ -1830,19 +1804,225 @@
     }
 
 
+    /* Favorite page search restored */
+    .favorite-search-card {
+      border: 0;
+      border-bottom: 1px solid var(--line-soft);
+      border-radius: 0;
+      background: #fff;
+      padding: 2px 0 14px;
+      margin-bottom: 14px;
+      box-shadow: none;
+      overflow: visible;
+    }
 
-    /* Add itinerary form stability */
-    .form-card,
-    .form-grid-full,
-    .form-label {
+    .favorite-search-head {
+      display: grid;
+      gap: 3px;
+      margin-bottom: 10px;
+    }
+
+    .favorite-search-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 950;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .favorite-search-sub {
+      color: var(--light);
+      font-size: 11px;
+      font-weight: 760;
+      line-height: 1.4;
+    }
+
+    .favorite-search-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px;
+      align-items: center;
+      border: 1px solid var(--line-soft);
+      border-radius: 16px;
+      background: #fff;
+      padding: 3px;
+    }
+
+    .favorite-search-input-wrap {
+      position: relative;
       min-width: 0;
     }
 
-    .form-field,
-    .form-select,
-    .form-textarea {
-      max-width: 100%;
+    .favorite-search-input-wrap::before {
+      content: "⌕";
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--light);
+      font-size: 14px;
+      font-weight: 950;
+      pointer-events: none;
+    }
+
+    .favorite-search-form .field {
       min-width: 0;
+      min-height: 36px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      padding: 0 8px 0 30px;
+      box-shadow: none;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .favorite-search-form .field:focus {
+      background: var(--card-soft);
+    }
+
+    .favorite-search-form .secondary-btn {
+      min-height: 34px;
+      border-radius: 12px;
+      padding: 0 11px;
+      font-size: 11.5px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .favorite-search-helper {
+      margin-top: 7px;
+      color: var(--light);
+      font-size: 10.5px;
+      font-weight: 760;
+      line-height: 1.4;
+    }
+
+    .favorite-search-status {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.55;
+    }
+
+    .favorite-search-status.error {
+      color: #92400e;
+    }
+
+    .favorite-search-utility,
+    .favorite-search-google-fallback {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .favorite-search-google-fallback {
+      color: var(--muted);
+      font-size: 11.5px;
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .favorite-search-google-fallback span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .favorite-search-google-fallback a {
+      flex: 0 0 auto;
+      border: 1px solid rgba(47, 128, 168, 0.16);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--primary-dark);
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .favorite-search-results {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .favorite-search-result {
+      border: 1px solid var(--line-soft);
+      border-radius: 18px;
+      background: #fff;
+      padding: 12px;
+      box-shadow: none;
+      overflow: hidden;
+    }
+
+    .favorite-search-result-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 950;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+
+    .favorite-search-result-address {
+      display: -webkit-box;
+      overflow: hidden;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11.5px;
+      font-weight: 700;
+      line-height: 1.45;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      word-break: break-word;
+    }
+
+    .favorite-search-result-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .favorite-search-pill {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      max-width: 100%;
+      min-height: 22px;
+      border-radius: 999px;
+      background: var(--card-soft);
+      color: var(--muted);
+      padding: 0 8px;
+      font-size: 10.5px;
+      font-weight: 850;
+      margin-top: 8px;
+    }
+
+    .favorite-search-result-actions .card-button[disabled] {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 390px) {
+      .favorite-search-result-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .favorite-search-google-fallback {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .favorite-search-google-fallback span {
+        white-space: normal;
+      }
     }
 
     .bottom-nav {
@@ -2173,25 +2353,29 @@
     }
 
 
-    /* Osaka theme override: 大阪都會霓虹白底版 */
+    /* Osaka theme override: 全白底大阪都會質感版 */
 :root {
       --bg: #FFFFFF;
       --card: #FFFFFF;
-      --card-soft: #F1F4F8;
-      --text: #1F2933;
-      --muted: #667085;
-      --light: #98A2B3;
-      --line: #E4E7EC;
-      --line-soft: #EDF0F4;
+      --card-soft: #F7F7F7;
+      --text: #1F1F1F;
+      --muted: #72777F;
+      --light: #9CA3AF;
+      --line: #ECECEC;
+      --line-soft: #F2F3F5;
       --primary: #2F80ED;
       --primary-dark: #155EEF;
       --primary-soft: #EAF3FF;
-      --warning: #FF6B6B;
-      --warning-soft: #FFF1F2;
-      --danger: #E5484D;
+      --warning: #C8A96B;
+      --warning-soft: #FBF5E6;
+      --danger: #FF5A5F;
       --danger-soft: #FFF1F2;
-      --shadow: 0 18px 42px rgba(16, 24, 40, 0.08);
-      --shadow-soft: 0 8px 24px rgba(16, 24, 40, 0.055);
+      --shadow: 0 14px 36px rgba(16, 24, 40, 0.055);
+      --shadow-soft: 0 8px 20px rgba(16, 24, 40, 0.04);
+    }
+
+    body {
+      background: #FFFFFF;
     }
 
     body::before {
@@ -2200,9 +2384,9 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 4px;
+      height: 3px;
       z-index: 999;
-      background: linear-gradient(90deg, #2F80ED 0%, #FF5A5F 50%, #7C3AED 100%);
+      background: linear-gradient(90deg, #2F80ED 0%, #C8A96B 55%, #3E5F4A 100%);
       pointer-events: none;
     }
 
@@ -2213,7 +2397,22 @@
     .top,
     .date-rail {
       background: rgba(255, 255, 255, 0.96);
-      border-bottom-color: rgba(228, 231, 236, 0.9);
+      border-bottom-color: rgba(236,236,236,0.94);
+    }
+
+    .trip-title {
+      color: #1F1F1F;
+    }
+
+    .trip-subtitle::before {
+      content: "";
+      color: #2F80ED;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+    }
+
+    .content {
+      background: #FFFFFF;
     }
 
     .primary-btn,
@@ -2221,27 +2420,54 @@
     .expense-mini-tab.active,
     .mini-action.primary {
       border-color: #2F80ED;
-      background: linear-gradient(135deg, #2F80ED 0%, #155EEF 100%);
+      background: #2F80ED;
       color: #fff;
-      box-shadow: 0 10px 22px rgba(47,128,237,0.20);
+      box-shadow: 0 10px 22px rgba(47,128,237,0.16);
     }
 
+    .primary-btn:active,
+    .mini-action.primary:active {
+      background: #155EEF;
+    }
+
+    .secondary-btn,
     .ghost-btn,
     .edit-btn.active,
     .expense-settings-summary {
       color: #155EEF;
-      border-color: rgba(47,128,237,0.20);
+      border-color: rgba(47,128,237,0.18);
       background: #FFFFFF;
     }
 
+    .bottom-nav {
+      border-top-color: rgba(236,236,236,0.98);
+      background: rgba(255,255,255,0.98);
+    }
+
+    .bottom-nav-inner {
+      background: rgba(255,255,255,0.98);
+    }
+
     .nav-btn.active {
-      background: linear-gradient(135deg, rgba(47,128,237,0.12), rgba(255,90,95,0.10));
+      background: transparent;
       color: #155EEF;
     }
 
+    .nav-btn.active::before {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 50%;
+      width: 20px;
+      height: 2px;
+      border-radius: 999px;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, #2F80ED, #C8A96B);
+    }
+
     .nav-btn.active .nav-icon {
-      background: linear-gradient(135deg, #2F80ED 0%, #FF5A5F 100%);
-      box-shadow: 0 10px 20px rgba(47,128,237,0.24);
+      background: #2F80ED;
+      box-shadow: 0 8px 16px rgba(47,128,237,0.18);
     }
 
     .expense-entry-panel,
@@ -2250,39 +2476,71 @@
     .stop-card,
     .detail-card,
     .hotel-card,
-    .favorite-card {
-      border-color: rgba(228,231,236,0.9);
+    .favorite-card,
+    .expense-record-simple {
+      border-color: #ECECEC;
       background: #FFFFFF;
+      box-shadow: none;
+    }
+
+    .card,
+    .section,
+    .expense-entry-panel,
+    .expense-simple-panel {
+      background-color: #FFFFFF;
+    }
+
+    .expense-entry-title,
+    .expense-panel-title,
+    .section-title h2,
+    .person-stat-name {
+      color: #1F1F1F;
     }
 
     .expense-stat-value,
     .person-stat-value,
     .expense-record-amount-simple {
-      color: #1D4ED8;
+      color: #1F1F1F;
+    }
+
+    .person-cash-remain {
+      color: #8A6F32;
     }
 
     .expense-pill-simple,
     .tag,
-    .category-pill {
-      background: rgba(47,128,237,0.08);
-      color: #155EEF;
+    .category-pill,
+    .status-pill {
+      background: #F7F7F7;
+      color: #3E5F4A;
+      border-color: #ECECEC;
+    }
+
+    .date-chip.active {
+      color: #FFFFFF;
     }
 
     .notice {
-      border-color: rgba(47,128,237,0.16);
+      border-color: rgba(200,169,107,0.22);
       background: #FFFFFF;
-      color: #174EA6;
-      box-shadow: inset 3px 0 0 rgba(47,128,237,0.75), var(--shadow-soft);
+      color: #6F5520;
+      box-shadow: inset 3px 0 0 #C8A96B;
+    }
+
+    .hotel-card .primary-btn,
+    [data-view="hotels"] .primary-btn {
+      border-color: #3E5F4A;
+      background: #3E5F4A;
+      box-shadow: 0 10px 22px rgba(62,95,74,0.16);
+    }
+
+    .hotel-card .tag,
+    [data-view="hotels"] .tag {
+      background: #FBF5E6;
+      color: #715A23;
     }
 
 
-
-
-    /* Expense visual input variants - scoped to expense page only */
-    .expense-add-osaka {
-      --accent-red: #FF5A5F;
-      --accent-gold: #C8A96B;
-    }
 
     /* Expense visual input variants */
     .expense-add-visual .expense-entry-panel {
@@ -2533,461 +2791,18 @@
     }
 
 
-    .money-page-simple .person-stat-value.cash-main {
-      color: var(--text);
-    }
-
-    .money-page-simple .person-stat-value.cash-main span {
-      color: var(--light);
-    }
-
-    .money-page-simple .person-stat-value.expense-main {
-      color: var(--text);
-      font-size: 15.5px;
-      letter-spacing: -0.02em;
-    }
-
-    .money-page-simple .person-stat-value.expense-main span {
-      color: var(--light);
-    }
-
-    .person-cash-remain-line {
-      margin-top: 5px;
-      color: var(--light);
-      font-size: 11px;
-      font-weight: 760;
-      line-height: 1.45;
-    }
-
-    .person-cash-remain-line strong {
-      display: block;
-      margin-top: 3px;
-      color: #8A6F32;
-      font-size: 12.5px;
-      font-weight: 950;
-      letter-spacing: -0.01em;
-    }
-
-    .person-cash-remain-line.negative,
-    .person-cash-remain-line.negative strong {
-      color: var(--danger);
-    }
-
-    /* Expense usability sweep */
-    .amount-shortcut-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    .amount-shortcut {
-      min-height: 32px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: #fff;
-      color: var(--muted);
-      padding: 0 11px;
-      font-size: 12px;
-      font-weight: 920;
-    }
-
-    .amount-shortcut:active {
-      transform: scale(.985);
-    }
-
-    .expense-cash-preview {
-      min-height: 18px;
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 11.5px;
-      font-weight: 820;
-      line-height: 1.45;
-    }
-
-    .expense-cash-preview:empty {
-      display: none;
-    }
-
-    .expense-cash-preview.negative {
-      color: var(--danger);
-    }
-
-    .money-total-strip {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin: 0 0 12px;
-    }
-
-    .money-total-item {
-      border: 1px solid var(--line-soft);
-      border-radius: 18px;
-      background: #fff;
-      padding: 11px 12px;
-    }
-
-    .money-total-item.full {
-      grid-column: 1 / -1;
-    }
-
-    .money-total-label {
-      color: var(--light);
-      font-size: 10.5px;
-      font-weight: 950;
-      letter-spacing: .04em;
-    }
-
-    .money-total-value {
-      margin-top: 5px;
-      color: var(--text);
-      font-size: 18px;
-      font-weight: 950;
-      line-height: 1.15;
-      letter-spacing: -.025em;
-    }
-
-    .money-total-note {
-      margin-top: 4px;
-      color: var(--light);
-      font-size: 10.5px;
-      font-weight: 780;
-      line-height: 1.35;
-    }
-
-    .expense-scope-control {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      align-items: center;
-      gap: 10px;
-      margin: -2px 0 12px;
-      color: var(--light);
-      font-size: 11px;
-      font-weight: 900;
-    }
-
-    .expense-scope-date {
-      width: 100%;
-      min-height: 38px;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: #fff;
-      color: var(--text);
-      padding: 0 11px;
-      font-size: 13px;
-      font-weight: 850;
-      outline: none;
-    }
-
-    .money-page-simple .person-stat-value.cash-main.negative {
-      color: var(--danger);
-    }
-
-    .money-page-simple .person-stat-value.cash-main.negative span {
-      color: var(--danger);
-    }
-
-    @media (max-width: 390px) {
-      .money-total-strip {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* Clean expense record layout: reduce divider lines and prevent overflow */
-    .money-page-simple .expense-simple-panel {
-      border-top: 0;
-      border-bottom: 0;
-      padding: 16px 0 20px;
-    }
-
-    .money-page-simple .expense-panel-head {
-      margin-bottom: 10px;
-    }
-
-    .money-page-simple .expense-record-list-simple {
-      width: 100%;
-      max-width: 100%;
-      border-top: 0;
-      overflow: hidden;
-      box-sizing: border-box;
-    }
-
-    .money-page-simple .expense-record-row-simple {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 96px;
-      gap: 12px;
-      align-items: start;
-      width: 100%;
-      max-width: 100%;
-      min-width: 0;
-      overflow: hidden;
-      padding: 13px 0;
-      border-bottom: 1px solid var(--line-soft);
-      box-sizing: border-box;
-    }
-
-    .money-page-simple .expense-record-row-simple:last-child {
-      border-bottom: 0;
-    }
-
-    .money-page-simple .expense-record-main-simple {
-      min-width: 0;
-      max-width: 100%;
-      overflow: hidden;
-    }
-
-    .money-page-simple .expense-record-title-simple,
-    .money-page-simple .expense-record-meta-simple {
-      display: block;
-      max-width: 100%;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      box-sizing: border-box;
-    }
-
-    .money-page-simple .expense-record-tags-simple {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      max-width: 100%;
-      min-width: 0;
-      margin-top: 8px;
-      overflow: hidden;
-      box-sizing: border-box;
-    }
-
-    .money-page-simple .expense-record-tag {
-      display: inline-flex;
-      align-items: center;
-      max-width: 100%;
-      min-width: 0;
-      min-height: 22px;
-      border-radius: 999px;
-      background: var(--card-soft);
-      color: var(--muted);
-      padding: 0 8px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-size: 10.5px;
-      font-weight: 850;
-      line-height: 1;
-      box-sizing: border-box;
-    }
-
-    .money-page-simple .expense-record-amount-simple {
-      width: 96px;
-      max-width: 96px;
-      min-width: 0;
-      overflow: hidden;
-      text-align: right;
-      color: var(--text);
-      font-variant-numeric: tabular-nums;
-      box-sizing: border-box;
-      white-space: normal;
-    }
-
-    .money-page-simple .expense-record-amount-primary {
-      display: block;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: var(--text);
-      font-size: 14.5px;
-      font-weight: 950;
-      line-height: 1.25;
-    }
-
-    .money-page-simple .expense-record-amount-sub {
-      display: block;
-      max-width: 100%;
-      margin-top: 3px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: var(--light);
-      font-size: 10.5px;
-      font-weight: 850;
-      line-height: 1.25;
-    }
-
-    @media (max-width: 390px) {
-      .money-page-simple .expense-record-row-simple {
-        grid-template-columns: minmax(0, 1fr) 88px;
-        gap: 10px;
-      }
-
-      .money-page-simple .expense-record-amount-simple {
-        width: 88px;
-        max-width: 88px;
-      }
-
-      .money-page-simple .expense-record-amount-primary {
-        font-size: 13.5px;
-      }
-
-      .money-page-simple .expense-record-amount-sub {
-        font-size: 9.5px;
-      }
-    }
-
-
-
-    /* Quick action menu: long-press itinerary cards */
-    .quick-action-backdrop {
-      position: fixed;
-      inset: 0;
-      z-index: 140;
-      background: rgba(15, 23, 42, 0.04);
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .quick-action-menu {
-      position: fixed;
-      z-index: 150;
-      width: min(176px, calc(100vw - 28px));
-      overflow: hidden;
-      border: 1px solid rgba(229, 231, 235, 0.92);
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.98);
-      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.18);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      transform-origin: top center;
-      animation: quickMenuIn 0.14s ease-out;
-    }
-
-    @keyframes quickMenuIn {
-      from { opacity: 0; transform: translateY(4px) scale(0.98); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    .quick-action-head {
-      padding: 10px 12px 8px;
-      border-bottom: 1px solid var(--line-soft);
-    }
-
-    .quick-action-title {
-      overflow: hidden;
-      color: var(--text);
-      font-size: 12px;
-      font-weight: 950;
-      line-height: 1.25;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .quick-action-meta {
-      margin-top: 3px;
-      overflow: hidden;
-      color: var(--light);
-      font-size: 10.5px;
-      font-weight: 800;
-      line-height: 1.2;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .quick-action-button {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-      min-height: 42px;
-      border: 0;
-      border-bottom: 1px solid var(--line-soft);
-      background: transparent;
-      color: var(--text);
-      padding: 0 13px;
-      text-align: left;
-      font-size: 13px;
-      font-weight: 900;
-    }
-
-    .quick-action-button:last-child {
-      border-bottom: 0;
-    }
-
-    .quick-action-button:active {
-      background: var(--card-soft);
-    }
-
-    .quick-action-button.danger {
-      color: var(--danger);
-    }
-
-    .quick-action-arrow {
-      color: var(--light);
-      font-size: 14px;
-      font-weight: 900;
-    }
-
-    .today-item.quick-pressed,
-    .timeline-item.quick-pressed,
-    .stop-card.quick-pressed {
-      opacity: 0.72;
-    }
-
-
-    /* Logic / usability bug sweep */
-    .today-item,
-    .timeline-item,
-    .stop-card {
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
-      touch-action: pan-y;
-    }
-
-    .thumb,
-    .detail-image {
-      max-width: 100%;
-    }
-
-    .thumb-placeholder {
-      max-width: 100%;
-      contain: paint;
-    }
-
-    .detail-image .thumb-placeholder {
-      width: 100%;
-      max-width: 100%;
-    }
-
-
-    .thumb-placeholder::after {
-      right: 0;
-      bottom: 0;
-      width: 54px;
-      height: 54px;
-      transform: translate(22%, 22%);
-    }
-
-  
-
-    /* Favorite page place search */
-    .favorite-search-card {
+    /* 2026-05 UX refinement: search stability, favorite category filter, conflict warning */
+    .search-card.compact-search {
       border: 0;
       border-bottom: 1px solid var(--line-soft);
       border-radius: 0;
       background: #fff;
-      padding: 2px 0 14px;
-      margin-bottom: 16px;
       box-shadow: none;
-      overflow: visible;
+      padding: 2px 0 14px;
     }
 
-    .favorite-search-head {
-      display: grid;
-      gap: 3px;
-      margin-bottom: 10px;
-    }
-
-    .favorite-search-title {
-      margin: 0;
+    .compact-search-title {
+      margin: 0 0 10px;
       color: var(--text);
       font-size: 16px;
       font-weight: 950;
@@ -2995,16 +2810,9 @@
       line-height: 1.2;
     }
 
-    .favorite-search-sub {
-      color: var(--light);
-      font-size: 11px;
-      font-weight: 760;
-      line-height: 1.4;
-    }
-
-    .favorite-search-form {
+    .compact-search-row {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: 6px;
       align-items: center;
       border: 1px solid var(--line-soft);
@@ -3013,53 +2821,38 @@
       padding: 3px;
     }
 
-    .favorite-search-input-wrap {
-      position: relative;
-      min-width: 0;
-    }
-
-    .favorite-search-input-wrap::before {
-      content: "⌕";
-      position: absolute;
-      left: 11px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--light);
-      font-size: 14px;
-      font-weight: 950;
-      pointer-events: none;
-    }
-
-    .favorite-search-form .field {
-      min-width: 0;
+    .compact-search-row .field {
       min-height: 36px;
       border: 0;
       border-radius: 12px;
       background: transparent;
-      padding: 0 8px 0 30px;
+      padding: 0 10px;
       box-shadow: none;
       font-size: 13px;
       font-weight: 850;
     }
 
-    .favorite-search-form .field:focus {
+    .compact-search-row .field:focus {
       background: var(--card-soft);
     }
 
-    .favorite-search-form .primary-btn {
+    .compact-search-row .secondary-btn {
       min-height: 34px;
-      border: 1px solid rgba(47, 128, 237, 0.14);
       border-radius: 12px;
-      background: #fff;
-      color: var(--primary-dark);
-      padding: 0 11px;
+      padding: 0 12px;
       font-size: 11.5px;
       font-weight: 950;
       white-space: nowrap;
-      box-shadow: none;
     }
 
-    .favorite-search-helper {
+    .compact-search-filter {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .compact-search-helper {
       margin-top: 7px;
       color: var(--light);
       font-size: 10.5px;
@@ -3067,150 +2860,50 @@
       line-height: 1.4;
     }
 
-    .favorite-search-utility {
+    .favorite-filter-row {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-top: 10px;
+      gap: 7px;
+      overflow-x: auto;
+      margin: 0 -18px 12px;
+      padding: 0 18px 2px;
+      scrollbar-width: none;
     }
 
-    .favorite-search-utility .mini-action {
-      padding: 7px 10px;
-      font-size: 11px;
+    .favorite-filter-row::-webkit-scrollbar {
+      display: none;
     }
 
-    .favorite-search-status {
-      margin-top: 10px;
+    .favorite-filter-chip {
+      flex: 0 0 auto;
+      min-height: 31px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
       color: var(--muted);
+      padding: 0 11px;
+      font-size: 11.5px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .favorite-filter-chip.active {
+      border-color: rgba(47, 128, 168, 0.22);
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+    }
+
+    .conflict-warning {
+      border: 1px solid rgba(245, 158, 11, 0.24);
+      border-radius: var(--radius-md);
+      background: var(--warning-soft);
+      color: #92400e;
+      padding: 10px 12px;
       font-size: 12px;
-      font-weight: 760;
+      font-weight: 850;
       line-height: 1.55;
     }
 
-    .favorite-search-status.error {
-      color: #92400e;
-    }
-
-    .favorite-search-results {
-      display: grid;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .favorite-search-result {
-      border: 1px solid var(--line-soft);
-      border-radius: 18px;
-      background: #fff;
-      padding: 12px;
-      box-shadow: none;
-      overflow: hidden;
-    }
-
-    .favorite-search-result-title {
-      margin: 0;
-      color: var(--text);
-      font-size: 14px;
-      font-weight: 950;
-      line-height: 1.3;
-      word-break: break-word;
-    }
-
-    .favorite-search-result-address {
-      display: -webkit-box;
-      overflow: hidden;
-      margin-top: 5px;
-      color: var(--muted);
-      font-size: 11.5px;
-      font-weight: 700;
-      line-height: 1.45;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      word-break: break-word;
-    }
-
-    .favorite-search-result-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .favorite-search-pill {
-      display: inline-flex;
-      align-items: center;
-      width: fit-content;
-      max-width: 100%;
-      min-height: 22px;
-      border-radius: 999px;
-      background: var(--card-soft);
-      color: var(--muted);
-      padding: 0 8px;
-      font-size: 10.5px;
-      font-weight: 850;
-      margin-top: 8px;
-    }
-
-    .favorite-search-google-fallback {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      min-width: 0;
-      color: var(--muted);
-      font-size: 11.5px;
-      font-weight: 800;
-      line-height: 1.45;
-    }
-
-    .favorite-search-google-fallback span {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .favorite-search-google-fallback a {
-      flex: 0 0 auto;
-      border: 1px solid rgba(47, 128, 237, 0.16);
-      border-radius: 999px;
-      background: #fff;
-      color: var(--primary-dark);
-      padding: 7px 10px;
-      font-size: 11px;
-      font-weight: 950;
-      white-space: nowrap;
-    }
-
-    .favorite-search-result-actions .card-button[disabled] {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-
-    @media (max-width: 390px) {
-      .favorite-search-form {
-        grid-template-columns: minmax(0, 1fr) auto;
-      }
-
-      .favorite-search-form .primary-btn {
-        width: auto;
-      }
-
-      .favorite-search-utility,
-      .favorite-search-google-fallback {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .favorite-search-google-fallback span {
-        white-space: normal;
-      }
-
-      .favorite-search-result-actions {
-        grid-template-columns: 1fr;
-      }
-    }
-</style>
+  </style>
 </head>
 
 <body>
@@ -3358,55 +3051,26 @@
       travelers: getStoredTravelers(),
       moneyScope: "trip",
       moneySettingsOpen: false,
-      expenseDraft: {},
-      dateRailScrollLeft: 0,
       fxAutoChecked: false,
       loading: true,
       message: "",
       syncStatus: "",
       editMode: localStorage.getItem(EDIT_MODE_KEY) === "ON",
       query: "",
+      searchDraft: "",
+      searchComposing: false,
+      searchImeTapBlockUntil: 0,
       category: "全部",
+      favoriteCategory: "全部",
       favoriteSearchQuery: "",
       favoriteSearchResults: [],
       favoriteSearchLoading: false,
-      favoriteSearchError: ""
+      favoriteSearchError: "",
+      favoriteSearchComposing: false,
+      favoriteSearchImeTapBlockUntil: 0
     };
 
-    let quickActionSuppressClick = false;
-    let quickActionSuppressTimer = 0;
-    let rowsLoading = false;
-    let postWriteSyncTimer = 0;
-    let postWriteSyncFollowupTimer = 0;
-    let resumeSyncTimer = 0;
-    let lastResumeSyncAt = 0;
-    let favoriteSearchDebounceTimer = 0;
-    let favoriteSearchRequestSeq = 0;
-    let favoriteSearchComposing = false;
-    let favoriteSearchImeClickBlockUntil = 0;
-
     const app = document.getElementById("app");
-
-    function isFavoriteSearchInputElement(target) {
-      return Boolean(target?.closest?.("[data-action='favorite-place-search-input']"));
-    }
-
-    function shouldBlockFavoriteSearchImeGhostTap(event) {
-      if (state.screen !== "favorites") return false;
-      if (isFavoriteSearchInputElement(event.target)) return false;
-      return favoriteSearchComposing || Date.now() < favoriteSearchImeClickBlockUntil;
-    }
-
-    function blockFavoriteSearchImeGhostTap(event) {
-      if (!shouldBlockFavoriteSearchImeGhostTap(event)) return;
-      event.preventDefault();
-      event.stopPropagation();
-      if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
-    }
-
-    function armFavoriteSearchImeTapBlock(duration = 720) {
-      favoriteSearchImeClickBlockUntil = Math.max(favoriteSearchImeClickBlockUntil, Date.now() + duration);
-    }
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -3599,11 +3263,7 @@
     }
 
     function normalizeMoneyAmount(value) {
-      const normalized = String(value || "")
-        .replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xFEE0))
-        .replace(/[．]/g, ".")
-        .replace(/[^0-9.\-]/g, "");
-      const amount = Number(normalized);
+      const amount = Number(String(value || "").replace(/,/g, ""));
       return Number.isFinite(amount) && amount > 0 ? amount : 0;
     }
 
@@ -3669,27 +3329,7 @@
       });
     }
 
-    function updateExpenseCashPreview(form) {
-      if (!form) return;
-      const preview = form.querySelector("[data-expense-cash-preview]");
-      if (!preview) return;
-      const data = Object.fromEntries(new FormData(form).entries());
-      const amount = normalizeMoneyAmount(data.amount);
-      const currency = data.currency === "TWD" ? "TWD" : "JPY";
-      const payment = data.payment === "刷卡" ? "刷卡" : "現金";
-      const payer = normalizePayerName(data.payer || state.travelers[0] || FIXED_TRAVELERS[0]);
-
-      preview.classList.remove("negative");
-      preview.textContent = "";
-      if (!amount || currency !== "JPY" || payment !== "現金") return;
-
-      const before = getTravelerCashRemaining(payer);
-      const after = before - amount;
-      preview.textContent = `${payer} 日幣現金 ${formatMoney(before, "JPY")} → ${formatMoney(after, "JPY")}`;
-      if (after < 0) preview.classList.add("negative");
-    }
-
-    function buildExpenseSummaryText() {
+        function buildExpenseSummaryText() {
       const scoped = getScopedExpenses();
       const totals = sumExpenses(scoped);
       const travelerStats = getTravelerExpenseStats(scoped);
@@ -3727,51 +3367,6 @@
 
     function findStopById(id) {
       return getStops().find((stop) => stopId(stop) === id) || null;
-    }
-
-    function runtimeRowId(row, counters) {
-      const normalized = normalizeRow(row);
-      if (normalized.type === "itinerary") {
-        const order = Number(normalized.order || counters.itinerary + 1);
-        counters.itinerary += 1;
-        return stopId({
-          id: normalized.id || "",
-          date: normalized.date || "",
-          order,
-          time: normalized.time || "",
-          title: normalized.title || ""
-        });
-      }
-      if (normalized.type === "favorite") {
-        counters.favorite += 1;
-        return favoriteId({
-          id: normalized.id || "",
-          title: normalized.title || "",
-          area: normalized.area || "",
-          category: normalized.category || "",
-          address: normalized.address || ""
-        });
-      }
-      return normalized.id || "";
-    }
-
-    function findStopAfterLocalWrite(data, fallbackTargetId = "") {
-      const normalizedId = String(data.id || data.ID || "").trim();
-      if (normalizedId) {
-        const byId = findStopById(normalizedId);
-        if (byId) return byId;
-      }
-
-      const candidates = getStops().filter((stop) => {
-        if (fallbackTargetId && stopId(stop) === fallbackTargetId) return true;
-        if (data.date && stop.date !== data.date) return false;
-        if (data.title && stop.title !== data.title) return false;
-        if (data.time && stop.time !== data.time) return false;
-        if (data.address && stop.address !== data.address) return false;
-        return Boolean(data.date || data.title || data.time || data.address);
-      });
-
-      return candidates[candidates.length - 1] || null;
     }
 
     function isFavoriteStop(stop) {
@@ -3982,29 +3577,6 @@
       return getDates();
     }
 
-    function getExpenseDefaultDate() {
-      const today = todayISO();
-      const tripDates = getTripDateOptions();
-      if (tripDates.includes(today)) return today;
-      if (state.selectedDate) return state.selectedDate;
-      return tripDates[0] || today;
-    }
-
-    function getFormDefaultDate(item = {}) {
-      const today = todayISO();
-      const tripDates = getTripDateOptions();
-      if (item.date) return item.date;
-      if (state.selectedDate && tripDates.includes(state.selectedDate)) return state.selectedDate;
-      if (tripDates.includes(today)) return today;
-      return tripDates[0] || state.selectedDate || today;
-    }
-
-    function getFormDateOptions(selectedDate = "") {
-      const tripDates = getTripDateOptions();
-      const values = [selectedDate, ...tripDates].filter(Boolean);
-      return Array.from(new Set(values)).sort();
-    }
-
     function getDates() {
       return Array.from(new Set(getStops().map((stop) => stop.date).filter(Boolean)));
     }
@@ -4127,6 +3699,24 @@
       return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
     }
 
+    function favoriteSearchPlainLength(value) {
+      return String(value || "").trim().replace(/\s+/g, "").length;
+    }
+
+    function favoriteSearchQueries(rawQuery) {
+      const query = String(rawQuery || "").trim().replace(/\s+/g, " ");
+      if (!query) return [];
+      const hasArea = /大阪|京都|日本|Osaka|Kyoto|Japan|Namba|Umeda|Shinsaibashi|Dotonbori|Gion|Kawaramachi|Arashiyama|Nishiki/i.test(query);
+      const queries = [query];
+      if (!hasArea) {
+        queries.push(`${query} 大阪`);
+        queries.push(`${query} 京都`);
+        queries.push(`${query} Osaka`);
+        queries.push(`${query} Kyoto`);
+      }
+      return [...new Set(queries)].slice(0, 5);
+    }
+
     function guessFavoriteSearchCategory(item) {
       const text = `${item?.class || ""} ${item?.type || ""} ${item?.category || ""}`.toLowerCase();
       if (/restaurant|food|cafe|bar|pub|fast_food|ice_cream|bakery/.test(text)) return "餐廳";
@@ -4152,16 +3742,14 @@
       };
     }
 
+    function buildFavoriteSearchMapsUrl(place) {
+      if (place?.lat && place?.lng) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.lat},${place.lng}`)}`;
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place?.title || ""} ${place?.address || ""}`.trim())}`;
+    }
+
     function buildFavoriteSearchGoogleUrl(query) {
       const text = String(query || "").trim();
       return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(text || "大阪 京都")}`;
-    }
-
-    function buildFavoriteSearchMapsUrl(place) {
-      if (place?.lat && place?.lng) {
-        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.lat},${place.lng}`)}`;
-      }
-      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place?.title || ""} ${place?.address || ""}`.trim())}`;
     }
 
     function isFavoriteSearchResultAlreadySaved(place) {
@@ -4174,24 +3762,6 @@
       });
     }
 
-    function favoriteSearchPlainLength(value) {
-      return String(value || "").trim().replace(/\s+/g, "").length;
-    }
-
-    function favoriteSearchQueries(rawQuery) {
-      const query = String(rawQuery || "").trim().replace(/\s+/g, " ");
-      if (!query) return [];
-      const hasArea = /大阪|京都|日本|Osaka|Kyoto|Japan|Namba|Umeda|Shinsaibashi|Dotonbori|Gion|Kawaramachi|Arashiyama|Nishiki/i.test(query);
-      const queries = [query];
-      if (!hasArea) {
-        queries.push(`${query} 大阪`);
-        queries.push(`${query} 京都`);
-        queries.push(`${query} Osaka`);
-        queries.push(`${query} Kyoto`);
-      }
-      return [...new Set(queries)].slice(0, 5);
-    }
-
     async function fetchFavoriteSearchResults(query) {
       const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=jp&accept-language=zh-TW,zh,en,ja&q=${encodeURIComponent(query)}`;
       const response = await fetch(url, { headers: { "Accept": "application/json" } });
@@ -4199,87 +3769,97 @@
       return response.json();
     }
 
-    async function runFavoritePlaceSearch(options = {}) {
+    async function runFavoritePlaceSearch() {
       const query = String(state.favoriteSearchQuery || "").trim();
-      const isAuto = options.auto === true;
-      const seq = ++favoriteSearchRequestSeq;
-
       if (!query) {
-        state.favoriteSearchError = isAuto ? "" : "請先輸入想收藏的地點";
+        state.favoriteSearchError = "請先輸入想收藏的地點";
         state.favoriteSearchResults = [];
         state.favoriteSearchLoading = false;
         render();
         return;
       }
 
-      if (isAuto && favoriteSearchPlainLength(query) < 2) {
-        state.favoriteSearchError = "";
-        state.favoriteSearchResults = [];
-        state.favoriteSearchLoading = false;
-        return;
-      }
-
-      state.favoriteSearchLoading = !isAuto;
+      state.favoriteSearchLoading = true;
       state.favoriteSearchError = "";
-      if (!isAuto) state.favoriteSearchResults = [];
-      if (!isAuto) render();
+      state.favoriteSearchResults = [];
+      render();
 
       try {
         const seen = new Set();
         const results = [];
         const queries = favoriteSearchQueries(query);
         const responses = await Promise.allSettled(queries.map(fetchFavoriteSearchResults));
-        if (seq !== favoriteSearchRequestSeq) return;
-
         responses.forEach((result) => {
           if (result.status !== "fulfilled") return;
           const items = Array.isArray(result.value) ? result.value : [];
-          items.map(normalizeFavoriteSearchPlace)
-            .filter((item) => item.title)
-            .forEach((item) => {
-              const key = `${item.title}__${item.address}`.toLowerCase();
-              if (seen.has(key)) return;
-              seen.add(key);
-              results.push(item);
-            });
+          items.map(normalizeFavoriteSearchPlace).filter((item) => item.title).forEach((item) => {
+            const key = `${item.title}__${item.address}`.toLowerCase();
+            if (seen.has(key)) return;
+            seen.add(key);
+            results.push(item);
+          });
         });
-
         state.favoriteSearchResults = results.slice(0, 6);
-        if (!state.favoriteSearchResults.length) {
-          state.favoriteSearchError = "找不到結果，可以多打一點名稱，或加上大阪 / 京都 / 英文名";
-        }
+        if (!state.favoriteSearchResults.length) state.favoriteSearchError = "找不到結果，可以多打一點名稱，或加上大阪 / 京都 / 英文名";
       } catch (error) {
-        if (seq !== favoriteSearchRequestSeq) return;
         state.favoriteSearchError = "搜尋失敗，請確認網路後再試";
       } finally {
-        if (seq !== favoriteSearchRequestSeq) return;
         state.favoriteSearchLoading = false;
         render();
-        if (isAuto && state.screen === "favorites") {
-          requestAnimationFrame(() => {
-            const input = app.querySelector("[data-action='favorite-place-search-input']");
-            if (input) {
-              input.focus();
-              input.setSelectionRange(input.value.length, input.value.length);
-            }
-          });
-        }
       }
     }
 
-    function scheduleFavoritePlaceSearch() {
-      window.clearTimeout(favoriteSearchDebounceTimer);
-      const query = String(state.favoriteSearchQuery || "").trim();
-      favoriteSearchRequestSeq += 1;
-      if (favoriteSearchPlainLength(query) < 2) {
-        state.favoriteSearchLoading = false;
-        state.favoriteSearchError = "";
-        state.favoriteSearchResults = [];
-        return;
-      }
-      favoriteSearchDebounceTimer = window.setTimeout(() => {
-        runFavoritePlaceSearch({ auto: true });
-      }, 520);
+    function favoriteFilterCategories() {
+      const base = ["全部", "景點", "餐廳", "購物", "交通", "住宿", "備用"];
+      const dynamic = getFavoritePlaces().map((place) => place.category).filter(Boolean);
+      return Array.from(new Set([...base, ...dynamic]));
+    }
+
+    function findTimeConflict(payload) {
+      if (!payload || normalizeTypeValue(payload.type || payload.類型 || "") !== "itinerary") return null;
+      if (!payload.date || !payload.time) return null;
+      const currentMinutes = toMinutes(payload.time);
+      if (currentMinutes === null) return null;
+      const currentId = String(payload.id || state.formId || "");
+
+      return getStops().find((stop) => {
+        if (stop.date !== payload.date || !stop.time) return false;
+        const existingId = stopId(stop);
+        if (currentId && existingId === currentId) return false;
+        const existingMinutes = toMinutes(stop.time);
+        if (existingMinutes === null) return false;
+        return Math.abs(existingMinutes - currentMinutes) < 30;
+      }) || null;
+    }
+
+    function timeConflictMessage(payload) {
+      const conflict = findTimeConflict(payload);
+      if (!conflict) return "";
+      return `提醒：這筆行程跟 ${conflict.time || "未設定時間"}「${conflict.title}」距離少於 30 分鐘，建議確認移動時間是否足夠`;
+    }
+
+    function searchImeLocked(event) {
+      if (state.screen !== "search") return false;
+      if (event?.target?.closest?.("[data-action='search-input']")) return false;
+      return state.searchComposing || Date.now() < state.searchImeTapBlockUntil;
+    }
+
+    function blockSearchImeGhostTap(event) {
+      if (!searchImeLocked(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
+    }
+
+    function armSearchImeTapBlock(duration = 800) {
+      state.searchImeTapBlockUntil = Math.max(state.searchImeTapBlockUntil, Date.now() + duration);
+    }
+
+    function applySearchQueryFromInput() {
+      const input = app.querySelector("[data-action='search-input']");
+      if (input) state.searchDraft = input.value;
+      state.query = String(state.searchDraft || "").trim();
+      render();
     }
 
     
@@ -4354,7 +3934,7 @@
       const notice = stop.notice ? `<div class="stop-note warning">${escapeHtml(stop.notice)}</div>` : "";
 
       return `
-        <article class="stop-card" data-action="open-stop" data-stop-id="${attr(stopId(stop))}" tabindex="0" role="button" aria-label="查看 ${attr(stop.title)} 詳情">
+        <article class="stop-card">
           <div class="stop-main">
             ${thumbnailHtml(stop)}
             <div class="stop-body">
@@ -4525,14 +4105,6 @@
       return state.editMode ? html : "";
     }
 
-    function formatTripTitleHtml(title) {
-      const safeTitle = escapeHtml(title);
-      if (safeTitle.includes("大阪・京都行程")) {
-        return safeTitle.replace("大阪・京都行程", '<span class="keep-word">大阪・京都行程</span>');
-      }
-      return safeTitle.replace(/行程$/u, '<span class="keep-word">行程</span>');
-    }
-
     function topHtml(titleOverride = "") {
       const settings = getSettings();
       const dates = getDates();
@@ -4543,7 +4115,7 @@
         <header class="top">
           <div class="top-row">
             <div>
-              <h1 class="trip-title">${formatTripTitleHtml(title)}</h1>
+              <h1 class="trip-title">${escapeHtml(title)}</h1>
               <p class="trip-subtitle">${escapeHtml(subtitle)}</p>
             </div>
             <div class="top-actions">
@@ -4572,12 +4144,8 @@
       const dailyNotice = getDailyNotice();
       const firstTime = dayStops[0]?.time || "--";
       const realToday = todayISO();
-      const tripDates = getDates();
-      const realTodayInTrip = tripDates.includes(realToday);
-      const heroDateLabel = realTodayInTrip && state.selectedDate === realToday
-        ? formatLongDate(realToday)
-        : formatLongDate(state.selectedDate);
-      const displayDateLabel = realTodayInTrip && state.selectedDate === realToday
+      const realTodayLabel = formatLongDate(realToday);
+      const displayDateLabel = state.selectedDate === realToday
         ? "顯示今日行程"
         : `顯示 ${formatDateLabel(state.selectedDate)} 行程`;
 
@@ -4588,7 +4156,7 @@
           <section class="section hero">
             <div class="hero-main">
               <div class="date-stack">
-                <span class="date-label">${escapeHtml(heroDateLabel)}</span>
+                <span class="date-label">${escapeHtml(realTodayLabel)}</span>
                 <span class="date-sub-label">${escapeHtml(displayDateLabel)}</span>
               </div>
               <div class="hero-stats">
@@ -4717,62 +4285,6 @@
       };
     }
 
-    async function postWritePayload(payload) {
-      const body = JSON.stringify(payload);
-      return fetch(WRITE_WEB_APP_URL, {
-        method: "POST",
-        mode: "no-cors",
-        keepalive: true,
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body
-      });
-    }
-
-    function schedulePostWriteSync() {
-      window.clearTimeout(postWriteSyncTimer);
-      window.clearTimeout(postWriteSyncFollowupTimer);
-
-      postWriteSyncTimer = window.setTimeout(() => {
-        loadRows(true, { silent: true, reason: "post-write" });
-      }, 2500);
-
-      postWriteSyncFollowupTimer = window.setTimeout(() => {
-        loadRows(true, { silent: true, reason: "post-write-followup" });
-      }, 7600);
-    }
-
-    function isEditableElementActive() {
-      const active = document.activeElement;
-      if (!active || active === document.body) return false;
-      return Boolean(active.closest("input, textarea, select, [contenteditable='true']"));
-    }
-
-    function hasUnsavedExpenseDraftInDom() {
-      // 花費頁的新增表單是常駐式輸入區；只要表單在畫面上，就不要讓自動同步重畫頁面。
-      return Boolean(document.querySelector(".expense-form-visual"));
-    }
-
-    function hasUnsavedItineraryDraftInDom() {
-      if (!state.formMode) return false;
-      return Boolean(document.querySelector(".form-card"));
-    }
-
-    function shouldPauseAutoSyncForDraft() {
-      return hasUnsavedItineraryDraftInDom() || hasUnsavedExpenseDraftInDom() || isEditableElementActive();
-    }
-
-    function scheduleResumeSync() {
-      if (document.visibilityState && document.visibilityState !== "visible") return;
-      if (shouldPauseAutoSyncForDraft()) return;
-      const now = Date.now();
-      if (now - lastResumeSyncAt < 15000) return;
-      lastResumeSyncAt = now;
-      window.clearTimeout(resumeSyncTimer);
-      resumeSyncTimer = window.setTimeout(() => {
-        loadRows(true, { silent: true, reason: "resume" });
-      }, 400);
-    }
-
     function normalizeWriteData(raw) {
       return {
         ID: raw.id || raw.ID || "",
@@ -4823,27 +4335,18 @@
 
     function applyOptimisticChange(action, data) {
       const normalized = normalizeWriteData(data);
-      const id = String(normalized.ID || normalized.id || data.id || data.ID || "").trim();
-      const targetId = String(data._targetId || data.targetId || id || "").trim();
+      const id = normalized.ID || normalized.id || data.id || data.ID || "";
       const internal = writeDataToInternalRow(data, id);
-      const counters = { itinerary: 0, favorite: 0 };
 
       if (action === "delete") {
-        state.rows = state.rows.filter((row) => {
-          const rowId = runtimeRowId(row, counters);
-          const normalizedRow = normalizeRow(row);
-          return !(normalizedRow.id === id || rowId === targetId || rowId === id);
-        });
+        state.rows = state.rows.filter((row) => normalizeRow(row).id !== id);
       } else if (action === "update") {
         let found = false;
         state.rows = state.rows.map((row) => {
-          const rowId = runtimeRowId(row, counters);
           const normalizedRow = normalizeRow(row);
-          const isSameRow = (id && normalizedRow.id === id) || (targetId && rowId === targetId) || (id && rowId === id);
-          if (isSameRow) {
+          if (normalizedRow.id === id) {
             found = true;
-            const preservedId = normalizedRow.id || id || "";
-            return { ...normalizedRow, ...internal, id: preservedId };
+            return { ...normalizedRow, ...internal, id };
           }
           return row;
         });
@@ -4900,7 +4403,6 @@
 
       state.message = "已先加入本機行程";
       state.syncStatus = "正在同步 Google Sheet，收藏已標記為已加入";
-      if (itineraryPayload.date) state.selectedDate = itineraryPayload.date;
       returnAfterWrite(itineraryPayload);
       render();
 
@@ -4911,13 +4413,24 @@
       }
 
       try {
-        await postWritePayload(actionPayload("create", normalizeWriteData(itineraryPayload)));
-        await postWritePayload(actionPayload("update", normalizeWriteData(markedFavorite)));
+        await fetch(WRITE_WEB_APP_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(actionPayload("create", normalizeWriteData(itineraryPayload)))
+        });
+
+        await fetch(WRITE_WEB_APP_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(actionPayload("update", normalizeWriteData(markedFavorite)))
+        });
 
         state.message = "已送出";
-        state.syncStatus = "正在自動同步最新資料";
+        state.syncStatus = "等待 Google Sheet 發佈資料同步";
         render();
-        schedulePostWriteSync();
+        window.setTimeout(() => loadRows(true), 2200);
       } catch (error) {
         state.message = "同步失敗";
         state.syncStatus = "已保留在本機暫存，請網路穩定後再試";
@@ -4926,22 +4439,11 @@
     }
 
     async function sendWrite(action, data) {
-      const originalTargetId = String(data._targetId || data.targetId || state.formId || data.id || data.ID || "").trim();
-
       if (action === "create" && !data.id && !data.ID) {
         data = { ...data, id: makeTempId(data.type || data.類型 || "行程") };
       }
 
       applyOptimisticChange(action, data);
-
-      const savedType = normalizeTypeValue(data.type || data.類型 || "");
-      if (savedType === "itinerary") {
-        if (data.date) state.selectedDate = data.date;
-        if (action === "update") {
-          const updatedStop = findStopAfterLocalWrite(data, originalTargetId);
-          if (updatedStop) state.selectedStopId = stopId(updatedStop);
-        }
-      }
 
       state.message = action === "delete" ? "已先從本機移除" : "已先在本機顯示";
       state.syncStatus = "正在同步 Google Sheet";
@@ -4957,13 +4459,18 @@
       const payload = actionPayload(action, normalizeWriteData(data));
 
       try {
-        await postWritePayload(payload);
+        await fetch(WRITE_WEB_APP_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
 
         state.message = "已送出";
-        state.syncStatus = "正在自動同步最新資料";
+        state.syncStatus = "等待 Google Sheet 發佈資料同步";
         render();
 
-        schedulePostWriteSync();
+        window.setTimeout(() => loadRows(true), 2200);
       } catch (error) {
         state.message = "同步失敗";
         state.syncStatus = "已保留在本機暫存，請網路穩定後再試";
@@ -5189,6 +4696,16 @@
       `;
     }
 
+    function favoriteFilterHtml(categories) {
+      return `
+        <div class="favorite-filter-row" role="tablist" aria-label="收藏分類">
+          ${categories.map((cat) => `
+            <button class="favorite-filter-chip ${state.favoriteCategory === cat ? "active" : ""}" data-action="favorite-category-filter" data-favorite-category="${attr(cat)}" type="button">${escapeHtml(cat)}</button>
+          `).join("")}
+        </div>
+      `;
+    }
+
     function favoriteSearchResultHtml(place, index) {
       const saved = isFavoriteSearchResultAlreadySaved(place);
       return `
@@ -5216,22 +4733,22 @@
             <div class="favorite-search-input-wrap">
               <input class="field" data-action="favorite-place-search-input" value="${attr(state.favoriteSearchQuery)}" placeholder="搜尋景點、餐廳、店家" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
             </div>
-            <button class="primary-btn" data-action="favorite-place-search-submit" type="button" ${state.favoriteSearchLoading ? "disabled" : ""}>${state.favoriteSearchLoading ? "搜尋中" : "搜尋"}</button>
+            <button class="secondary-btn" data-action="favorite-place-search-submit" type="button" ${state.favoriteSearchLoading ? "disabled" : ""}>${state.favoriteSearchLoading ? "搜尋中" : "搜尋"}</button>
           </div>
           <div class="favorite-search-helper">輸入後按搜尋，查大阪、京都景點跟店家</div>
           ${hasSearchState ? `
             <div class="favorite-search-utility">
-              ${(favoriteSearchPlainLength(state.favoriteSearchQuery) >= 2 && !state.favoriteSearchLoading) ? `
-                <div class="favorite-search-google-fallback">
-                  <span>結果不準時，用 Google Maps 查同一個關鍵字</span>
-                  <a href="${attr(buildFavoriteSearchGoogleUrl(state.favoriteSearchQuery))}" target="_blank" rel="noreferrer">Google Maps</a>
-                </div>
-              ` : `<span></span>`}
-              <button class="mini-action" data-action="favorite-place-search-clear" type="button">清除</button>
+              <button class="mini-action" data-action="favorite-place-search-clear" type="button">清除搜尋</button>
             </div>
           ` : ""}
           ${state.favoriteSearchLoading ? `<div class="favorite-search-status">搜尋中...</div>` : ""}
           ${state.favoriteSearchError ? `<div class="favorite-search-status error">${escapeHtml(state.favoriteSearchError)}</div>` : ""}
+          ${(favoriteSearchPlainLength(state.favoriteSearchQuery) >= 2 && !state.favoriteSearchLoading) ? `
+            <div class="favorite-search-google-fallback">
+              <span>找不到或不確定時，可以直接用 Google Maps 查同一個關鍵字</span>
+              <a href="${attr(buildFavoriteSearchGoogleUrl(state.favoriteSearchQuery))}" target="_blank" rel="noreferrer">Google Maps</a>
+            </div>
+          ` : ""}
           ${state.favoriteSearchResults.length ? `
             <div class="favorite-search-results">
               ${state.favoriteSearchResults.map(favoriteSearchResultHtml).join("")}
@@ -5242,7 +4759,12 @@
     }
 
     function favoritesPageHtml() {
-      const favoritePlaces = getFavoritePlaces();
+      const allFavoritePlaces = getFavoritePlaces();
+      const categories = favoriteFilterCategories();
+      if (!categories.includes(state.favoriteCategory)) state.favoriteCategory = "全部";
+      const favoritePlaces = state.favoriteCategory === "全部"
+        ? allFavoritePlaces
+        : allFavoritePlaces.filter((place) => place.category === state.favoriteCategory);
 
       return `
         ${topHtml("收藏")}
@@ -5252,18 +4774,19 @@
           <div class="section-title">
             <div class="section-title-group">
               <h2>候選地點</h2>
-              <span>${escapeHtml(String(favoritePlaces.length))} 個地點</span>
+              <span>${escapeHtml(String(allFavoritePlaces.length))} 個地點</span>
             </div>
             ${editOnly(`<button class="mini-action primary" data-action="add-favorite" type="button">＋新增</button>`)}
           </div>
+          ${favoriteFilterHtml(categories)}
           ${favoritePlaces.length ? `
             <section class="today-list">
               ${favoritePlaces.map(favoriteListItemHtml).join("")}
             </section>
           ` : `
             <section class="favorite-empty">
-              <strong>還沒有收藏候選</strong>
-              ${state.editMode ? "按右上角「＋新增」即可建立候選地點" : "目前沒有候選地點"}
+              <strong>${state.favoriteCategory === "全部" ? "還沒有收藏候選" : `沒有${state.favoriteCategory}分類收藏`}</strong>
+              ${state.favoriteCategory === "全部" ? (state.editMode ? "按右上角「＋新增」即可建立候選地點" : "目前沒有候選地點") : "可以切回全部，或先新增其他收藏"}
             </section>
           `}
         </div>
@@ -5271,17 +4794,11 @@
     }
 
 
-
     function moneyPageHtml() {
       const scopedExpenses = getScopedExpenses();
       const travelerStats = getTravelerExpenseStats(scopedExpenses);
-      const defaultDate = getExpenseDefaultDate();
+      const defaultDate = state.selectedDate || todayISO();
       const scopeLabel = state.moneyScope === "day" ? "當日" : "全旅程";
-      const lastExpense = state.expenseDraft && Object.keys(state.expenseDraft).length ? state.expenseDraft : (state.expenses[0] || {});
-      const defaultCurrency = lastExpense.currency === "TWD" ? "TWD" : "JPY";
-      const defaultPayer = normalizePayerName(lastExpense.payer || state.travelers[0] || FIXED_TRAVELERS[0]);
-      const defaultPayment = lastExpense.payment === "刷卡" ? "刷卡" : "現金";
-      const defaultCategory = lastExpense.category || "餐飲";
       const categories = [["餐飲", "食"], ["交通", "移"], ["購物", "買"], ["門票", "票"], ["住宿", "宿"], ["伴手禮", "禮"], ["其他", "其"]];
 
       return `
@@ -5293,6 +4810,7 @@
             <div class="expense-entry-head">
               <div>
                 <h2 class="expense-entry-title">新增花費</h2>
+                <div class="expense-entry-sub">白底保留大阪都會感，記帳速度優先</div>
               </div>
               <details class="expense-settings-pop" ${state.moneySettingsOpen ? "open" : ""}>
                 <summary class="expense-settings-summary">設定</summary>
@@ -5321,26 +4839,19 @@
             <form class="expense-form-visual" data-action="add-expense">
               <section class="visual-amount-panel">
                 <div class="visual-label">金額</div>
-                <input class="visual-amount-input" name="amount" inputmode="decimal" placeholder="0" required autofocus>
+                <input class="visual-amount-input" name="amount" inputmode="decimal" placeholder="0" required>
                 <div class="visual-amount-note">先輸入金額，再選幣別跟付款人</div>
                 <div class="visual-choice-row" style="margin-top:12px">
-                  <label class="visual-choice"><input type="radio" name="currency" value="JPY" ${defaultCurrency === "JPY" ? "checked" : ""}><span>JPY 日幣</span></label>
-                  <label class="visual-choice"><input type="radio" name="currency" value="TWD" ${defaultCurrency === "TWD" ? "checked" : ""}><span>TWD 台幣</span></label>
+                  <label class="visual-choice"><input type="radio" name="currency" value="JPY" checked><span>JPY 日幣</span></label>
+                  <label class="visual-choice"><input type="radio" name="currency" value="TWD"><span>TWD 台幣</span></label>
                 </div>
-                <div class="amount-shortcut-row">
-                  <button class="amount-shortcut" data-action="add-amount-shortcut" data-amount="500" type="button">+500</button>
-                  <button class="amount-shortcut" data-action="add-amount-shortcut" data-amount="1000" type="button">+1000</button>
-                  <button class="amount-shortcut" data-action="add-amount-shortcut" data-amount="2000" type="button">+2000</button>
-                  <button class="amount-shortcut" data-action="add-amount-shortcut" data-amount="5000" type="button">+5000</button>
-                </div>
-                <div class="expense-cash-preview" data-expense-cash-preview></div>
               </section>
 
               <section class="visual-block">
                 <div class="visual-label">付款人</div>
                 <div class="visual-choice-row">
-                  ${state.travelers.map((name) => `
-                    <label class="visual-choice"><input type="radio" name="payer" value="${attr(name)}" ${name === defaultPayer ? "checked" : ""}><span>${escapeHtml(name)}</span></label>
+                  ${state.travelers.map((name, index) => `
+                    <label class="visual-choice"><input type="radio" name="payer" value="${attr(name)}" ${index === 0 ? "checked" : ""}><span>${escapeHtml(name)}</span></label>
                   `).join("")}
                 </div>
               </section>
@@ -5348,17 +4859,18 @@
               <section class="visual-block">
                 <div class="visual-label">付款方式</div>
                 <div class="visual-choice-row">
-                  <label class="visual-choice"><input type="radio" name="payment" value="現金" ${defaultPayment === "現金" ? "checked" : ""}><span>現金</span></label>
-                  <label class="visual-choice"><input type="radio" name="payment" value="刷卡" ${defaultPayment === "刷卡" ? "checked" : ""}><span>刷卡</span></label>
+                  <label class="visual-choice"><input type="radio" name="payment" value="現金" checked><span>現金</span></label>
+                  <label class="visual-choice"><input type="radio" name="payment" value="刷卡"><span>刷卡</span></label>
                 </div>
+                <div class="visual-cash-hint">只有 JPY＋現金會扣該付款人的日幣現金</div>
               </section>
 
               <section class="visual-block">
                 <div class="visual-label">分類</div>
                 <div class="visual-category-grid">
-                  ${categories.map(([cat, mark]) => `
+                  ${categories.map(([cat, mark], index) => `
                     <label class="visual-choice">
-                      <input type="radio" name="category" value="${attr(cat)}" ${cat === defaultCategory ? "checked" : ""}>
+                      <input type="radio" name="category" value="${attr(cat)}" ${index === 0 ? "checked" : ""}>
                       <span><b class="visual-category-mark">${escapeHtml(mark)}</b>${escapeHtml(cat)}</span>
                     </label>
                   `).join("")}
@@ -5369,8 +4881,8 @@
                 <label class="form-label">日期
                   <input class="form-field" name="date" type="date" value="${attr(defaultDate)}" required>
                 </label>
-                <label class="form-label">店家 / 項目
-                  <input class="form-field" name="title" placeholder="可空白，例如：拉麵、車票、藥妝">
+                <label class="form-label"><span>店家 / 項目 <span class="quick-required">必填</span></span>
+                  <input class="form-field" name="title" placeholder="例如：拉麵、車票、藥妝" required>
                 </label>
               </section>
 
@@ -5384,41 +4896,24 @@
           <section class="section expense-simple-panel">
             <div class="expense-panel-head">
               <div>
-                <h2 class="expense-panel-title">付款人統計</h2>
-                <div class="expense-panel-sub">${escapeHtml(scopeLabel)}</div>
+                <h2 class="expense-panel-title">每個人已花費</h2>
+                <div class="expense-panel-sub">${escapeHtml(scopeLabel)}｜日幣現金剩餘只扣本人 JPY 現金消費</div>
               </div>
             </div>
             <div class="expense-mini-tabs">
               <button class="expense-mini-tab ${state.moneyScope === "trip" ? "active" : ""}" data-action="set-money-scope" data-scope="trip" type="button">全旅程</button>
               <button class="expense-mini-tab ${state.moneyScope === "day" ? "active" : ""}" data-action="set-money-scope" data-scope="day" type="button">當日</button>
             </div>
-            ${state.moneyScope === "day" ? `
-              <label class="expense-scope-control">
-                查看日期
-                <input class="expense-scope-date" data-action="money-date-input" type="date" value="${attr(defaultDate)}">
-              </label>
-            ` : ""}
             <div class="person-stat-list">
-              ${travelerStats.map((person) => {
-                const cashRemaining = getTravelerCashRemaining(person.name);
-                const spentTwd = Math.round(person.TWDConverted);
-                const spentJpy = state.fxRate > 0 ? Math.round(spentTwd / state.fxRate) : Math.round(person.JPY);
-                return `
-                  <div class="person-stat-row">
-                    <div>
-                      <div class="person-stat-name">${escapeHtml(person.name)}</div>
-                      <div class="person-cash-remain-line ${cashRemaining < 0 ? "negative" : ""}">
-                        目前日幣現金剩餘
-                        <strong>${escapeHtml(formatMoney(cashRemaining, "JPY"))}</strong>
-                      </div>
-                    </div>
-                    <div class="person-stat-value expense-main">
-                      ${escapeHtml(formatMoney(spentJpy, "JPY"))}
-                      <span>約 ${escapeHtml(formatMoney(spentTwd, "TWD"))}</span>
-                    </div>
+              ${travelerStats.map((person) => `
+                <div class="person-stat-row">
+                  <div>
+                    <div class="person-stat-name">${escapeHtml(person.name)}</div>
+                    <div class="person-stat-note">日幣現金剩餘 ${escapeHtml(formatMoney(getTravelerCashRemaining(person.name), "JPY"))}</div>
                   </div>
-                `;
-              }).join("")}
+                  <div class="person-stat-value">${escapeHtml(formatMoney(Math.round(person.TWDConverted), "TWD"))}</div>
+                </div>
+              `).join("")}
             </div>
           </section>
 
@@ -5434,7 +4929,7 @@
               <div class="expense-record-list-simple">
                 ${scopedExpenses.map((item) => `
                   <article class="expense-record-row-simple">
-                    <div class="expense-record-main-simple">
+                    <div>
                       <div class="expense-record-title-simple">${escapeHtml(item.title)}</div>
                       <div class="expense-record-meta-simple">${escapeHtml(item.date)}｜${escapeHtml(item.payer || state.travelers[0])}</div>
                       <div class="expense-record-tags-simple">
@@ -5446,8 +4941,8 @@
                       <button class="delete-expense-btn" data-action="delete-expense" data-expense-id="${attr(item.id)}" type="button">刪除</button>
                     </div>
                     <div class="expense-record-amount-simple">
-                      <div class="expense-record-amount-primary">${escapeHtml(formatMoney(item.amount, item.currency))}</div>
-                      <div class="expense-record-amount-sub">約 ${escapeHtml(formatMoney(Math.round(expenseToTwd(item)), "TWD"))}</div>
+                      ${escapeHtml(formatMoney(item.amount, item.currency))}
+                      <span>約 ${escapeHtml(formatMoney(Math.round(expenseToTwd(item)), "TWD"))}</span>
                     </div>
                   </article>
                 `).join("")}
@@ -5463,11 +4958,11 @@
       `;
     }
 
-
     function searchPageHtml() {
       const stops = getStops();
       const categories = ["全部", ...Array.from(new Set(stops.map((stop) => stop.category).filter(Boolean)))];
       const q = state.query.trim().toLowerCase();
+      const draft = state.searchDraft || state.query;
 
       const searchedStops = stops.filter((stop) => {
         const matchCategory = state.category === "全部" || stop.category === state.category;
@@ -5479,14 +4974,19 @@
         ${topHtml("搜尋")}
         <div class="page content">
           ${messageHtml()}
-          <section class="section search-card">
-            <input class="field" data-action="search-input" value="${attr(state.query)}" placeholder="輸入關鍵字，例如：餐廳、車站、住宿" />
-            <div class="form-grid">
+          <section class="section search-card compact-search">
+            <h2 class="compact-search-title">搜尋行程</h2>
+            <div class="compact-search-row">
+              <input class="field" data-action="search-input" value="${attr(draft)}" placeholder="輸入關鍵字" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" />
+              <button class="secondary-btn" data-action="submit-search" type="button">搜尋</button>
+            </div>
+            <div class="compact-search-filter">
               <select class="field" data-action="category-select">
                 ${categories.map((item) => `<option value="${attr(item)}" ${item === state.category ? "selected" : ""}>${escapeHtml(item)}</option>`).join("")}
               </select>
               <button class="secondary-btn" data-action="clear-search" type="button">清除</button>
             </div>
+            <div class="compact-search-helper">輸入後按搜尋，避免選字時誤觸背後內容</div>
           </section>
 
           <div class="section-title">
@@ -5511,8 +5011,9 @@
 
       const type = isConvert ? "行程" : state.formType || "行程";
       const submitLabel = isEdit ? "儲存修改" : isConvert ? "加入行程" : "新增";
-      const selectedDate = getFormDefaultDate(item);
-      const dates = getFormDateOptions(selectedDate);
+      const dates = getTripDateOptions();
+      const fallbackDate = state.selectedDate || dates[0] || "";
+      const selectedDate = item.date || fallbackDate;
       const dateOptions = dates.length
         ? dates.map((date) => `<option value="${attr(date)}" ${selectedDate === date ? "selected" : ""}>${escapeHtml(formatDateLabel(date))}</option>`).join("")
         : `<option value="${attr(selectedDate)}">${escapeHtml(selectedDate || "未設定日期")}</option>`;
@@ -5559,7 +5060,7 @@
             <p class="form-help">
               ${isFavorite
                 ? "快速收藏只需要填標題、分類跟地址；其他資訊可以之後再補"
-                : "快速新增只需要填日期、標題、分類跟地址；時間可空白，其他資訊收在更多設定"}
+                : "快速新增只需要填日期、開始時間、標題、分類跟地址；儲存時會提醒 30 分鐘內的時間衝突"}
             </p>
 
             <form class="form-grid-full" data-action="submit-form">
@@ -5733,253 +5234,6 @@
       }
     }
 
-
-    function clearQuickActionSuppressSoon() {
-      window.clearTimeout(quickActionSuppressTimer);
-      quickActionSuppressTimer = window.setTimeout(() => {
-        quickActionSuppressClick = false;
-      }, 520);
-    }
-
-    function closeQuickActionMenu() {
-      document.querySelectorAll(".quick-action-backdrop, .quick-action-menu").forEach((node) => node.remove());
-      document.querySelectorAll(".quick-pressed").forEach((node) => node.classList.remove("quick-pressed"));
-    }
-
-    function placeQuickActionMenu(menu, x, y) {
-      const margin = 12;
-      const menuWidth = Math.min(176, window.innerWidth - margin * 2);
-      menu.style.width = `${menuWidth}px`;
-      menu.style.left = "0px";
-      menu.style.top = "0px";
-      document.body.appendChild(menu);
-
-      const rect = menu.getBoundingClientRect();
-      const safeBottom = 82;
-      let left = x + 10;
-      let top = y + 10;
-
-      if (left + rect.width > window.innerWidth - margin) left = window.innerWidth - rect.width - margin;
-      if (left < margin) left = margin;
-      if (top + rect.height > window.innerHeight - safeBottom) top = y - rect.height - 10;
-      if (top < margin) top = margin;
-
-      menu.style.left = `${Math.round(left)}px`;
-      menu.style.top = `${Math.round(top)}px`;
-    }
-
-    function showStopQuickActionMenu(stopIdValue, x, y, sourceElement) {
-      const stop = findStopById(stopIdValue);
-      if (!stop) return;
-
-      closeQuickActionMenu();
-      quickActionSuppressClick = true;
-      clearQuickActionSuppressSoon();
-      if (sourceElement) sourceElement.classList.add("quick-pressed");
-
-      const backdrop = document.createElement("div");
-      backdrop.className = "quick-action-backdrop";
-      backdrop.addEventListener("click", closeQuickActionMenu);
-      document.body.appendChild(backdrop);
-
-      const menu = document.createElement("div");
-      menu.className = "quick-action-menu";
-      menu.setAttribute("role", "menu");
-      menu.innerHTML = `
-        <div class="quick-action-head">
-          <div class="quick-action-title">${escapeHtml(stop.title)}</div>
-          <div class="quick-action-meta">${escapeHtml([stop.time || "--:--", stop.category || "行程"].filter(Boolean).join("｜"))}</div>
-        </div>
-        <button class="quick-action-button" type="button" data-quick-action="edit">修改<span class="quick-action-arrow">›</span></button>
-        <button class="quick-action-button" type="button" data-quick-action="nav">導航<span class="quick-action-arrow">›</span></button>
-        <button class="quick-action-button danger" type="button" data-quick-action="delete">刪除<span class="quick-action-arrow">›</span></button>
-      `;
-
-      menu.querySelectorAll("[data-quick-action]").forEach((button) => {
-        button.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          const action = button.dataset.quickAction;
-          closeQuickActionMenu();
-
-          if (action === "edit") {
-            if (!requireEditMode()) return;
-            openForm("edit", "行程", stopId(stop));
-            return;
-          }
-
-          if (action === "nav") {
-            window.open(buildCurrentLocationDirectionsUrl(stop), "_blank", "noopener,noreferrer");
-            return;
-          }
-
-          if (action === "delete") {
-            if (!requireEditMode()) return;
-            const ok = confirm(`確定要刪除這筆行程？\n\n${stop.date || ""} ${stop.time || ""}\n${stop.title}\n\n刪除後會從 Google Sheet 移除。`);
-            if (!ok) return;
-            sendWrite("delete", { id: stopId(stop), type: "行程", title: stop.title });
-          }
-        });
-      });
-
-      placeQuickActionMenu(menu, x, y);
-    }
-
-    function showFavoriteQuickActionMenu(favoriteIdValue, x, y, sourceElement) {
-      const place = findFavoriteById(favoriteIdValue);
-      if (!place) return;
-
-      closeQuickActionMenu();
-      quickActionSuppressClick = true;
-      clearQuickActionSuppressSoon();
-      if (sourceElement) sourceElement.classList.add("quick-pressed");
-
-      const backdrop = document.createElement("div");
-      backdrop.className = "quick-action-backdrop";
-      backdrop.addEventListener("click", closeQuickActionMenu);
-      document.body.appendChild(backdrop);
-
-      const menu = document.createElement("div");
-      menu.className = "quick-action-menu";
-      menu.setAttribute("role", "menu");
-      menu.innerHTML = `
-        <div class="quick-action-head">
-          <div class="quick-action-title">${escapeHtml(place.title)}</div>
-          <div class="quick-action-meta">${escapeHtml([place.category || "收藏", place.area || ""].filter(Boolean).join("｜"))}</div>
-        </div>
-        <button class="quick-action-button" type="button" data-quick-action="edit">修改<span class="quick-action-arrow">›</span></button>
-        <button class="quick-action-button" type="button" data-quick-action="nav">導航<span class="quick-action-arrow">›</span></button>
-        <button class="quick-action-button danger" type="button" data-quick-action="delete">刪除<span class="quick-action-arrow">›</span></button>
-      `;
-
-      menu.querySelectorAll("[data-quick-action]").forEach((button) => {
-        button.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          const action = button.dataset.quickAction;
-          closeQuickActionMenu();
-
-          if (action === "edit") {
-            if (!requireEditMode()) return;
-            openForm("edit", "收藏", favoriteId(place));
-            return;
-          }
-
-          if (action === "nav") {
-            window.open(buildCurrentLocationDirectionsUrl(place), "_blank", "noopener,noreferrer");
-            return;
-          }
-
-          if (action === "delete") {
-            if (!requireEditMode()) return;
-            const ok = confirm(`確定要刪除這筆收藏？\n\n${place.title}\n\n刪除後會從 Google Sheet 移除。`);
-            if (!ok) return;
-            sendWrite("delete", { id: favoriteId(place), type: "收藏", title: place.title });
-          }
-        });
-      });
-
-      placeQuickActionMenu(menu, x, y);
-    }
-
-    function bindFavoriteQuickActions() {
-      let longPressTimer = 0;
-      let startX = 0;
-      let startY = 0;
-      let targetElement = null;
-      const longPressMs = 520;
-      const moveTolerance = 12;
-
-      app.querySelectorAll(".today-item[data-favorite-id]").forEach((element) => {
-        element.addEventListener("contextmenu", (event) => {
-          if (event.target.closest("a, button, input, select, textarea")) return;
-          event.preventDefault();
-        });
-
-        element.addEventListener("pointerdown", (event) => {
-          if (event.button !== undefined && event.button !== 0) return;
-          if (event.target.closest("a, button, input, select, textarea")) return;
-          closeQuickActionMenu();
-          targetElement = element;
-          startX = event.clientX;
-          startY = event.clientY;
-          window.clearTimeout(longPressTimer);
-          longPressTimer = window.setTimeout(() => {
-            if (!targetElement) return;
-            showFavoriteQuickActionMenu(element.dataset.favoriteId || "", startX, startY, element);
-          }, longPressMs);
-        });
-
-        element.addEventListener("pointermove", (event) => {
-          if (!targetElement) return;
-          const dx = Math.abs(event.clientX - startX);
-          const dy = Math.abs(event.clientY - startY);
-          if (dx > moveTolerance || dy > moveTolerance) {
-            window.clearTimeout(longPressTimer);
-            targetElement = null;
-          }
-        });
-
-        ["pointerup", "pointercancel", "pointerleave"].forEach((eventName) => {
-          element.addEventListener(eventName, () => {
-            window.clearTimeout(longPressTimer);
-            targetElement = null;
-          });
-        });
-      });
-    }
-
-    function bindStopQuickActions() {
-      let longPressTimer = 0;
-      let startX = 0;
-      let startY = 0;
-      let targetElement = null;
-      const longPressMs = 520;
-      const moveTolerance = 12;
-
-      app.querySelectorAll(".today-item[data-stop-id], .timeline-item[data-stop-id], .stop-card[data-stop-id]").forEach((element) => {
-        element.addEventListener("contextmenu", (event) => {
-          if (event.target.closest("a, button, input, select, textarea")) return;
-          event.preventDefault();
-        });
-
-        element.addEventListener("pointerdown", (event) => {
-          if (event.button !== undefined && event.button !== 0) return;
-          if (event.target.closest("a, button, input, select, textarea")) return;
-          closeQuickActionMenu();
-          targetElement = element;
-          startX = event.clientX;
-          startY = event.clientY;
-          window.clearTimeout(longPressTimer);
-          longPressTimer = window.setTimeout(() => {
-            if (!targetElement) return;
-            showStopQuickActionMenu(element.dataset.stopId || "", startX, startY, element);
-          }, longPressMs);
-        });
-
-        element.addEventListener("pointermove", (event) => {
-          if (!targetElement) return;
-          const dx = Math.abs(event.clientX - startX);
-          const dy = Math.abs(event.clientY - startY);
-          if (dx > moveTolerance || dy > moveTolerance) {
-            window.clearTimeout(longPressTimer);
-            targetElement = null;
-          }
-        });
-
-        ["pointerup", "pointercancel", "pointerleave"].forEach((eventName) => {
-          element.addEventListener(eventName, () => {
-            window.clearTimeout(longPressTimer);
-            targetElement = null;
-          });
-        });
-      });
-
-      document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") closeQuickActionMenu();
-      }, { once: true });
-    }
-
     function render() {
       ensureSelectedDate();
 
@@ -6024,20 +5278,15 @@
 
         if (action === "set-screen") {
           element.addEventListener("click", () => {
-            const nextScreen = element.dataset.screen;
-            const isChangingScreen = state.screen !== nextScreen;
-            state.previousScreen = nextScreen;
-            state.screen = nextScreen;
+            state.previousScreen = element.dataset.screen;
+            state.screen = element.dataset.screen;
             state.selectedStopId = "";
             state.selectedFavoriteId = "";
             state.formMode = "";
             state.formType = "";
             state.formId = "";
             state.formReturnScreen = "";
-            if (isChangingScreen) {
-              state.message = "";
-              state.syncStatus = "";
-            }
+            if (state.screen === "search") state.searchDraft = state.query;
             render();
             window.scrollTo({ top: 0, behavior: "smooth" });
           });
@@ -6045,14 +5294,8 @@
 
         if (action === "select-date") {
           element.addEventListener("click", () => {
-            const rail = element.closest(".date-rail");
-            state.dateRailScrollLeft = rail ? rail.scrollLeft : state.dateRailScrollLeft;
             state.selectedDate = element.dataset.date;
             render();
-            requestAnimationFrame(() => {
-              const newRail = app.querySelector(".date-rail");
-              if (newRail) newRail.scrollLeft = state.dateRailScrollLeft;
-            });
           });
         }
 
@@ -6061,14 +5304,28 @@
         }
 
         if (action === "search-input") {
+          element.addEventListener("compositionstart", () => {
+            state.searchComposing = true;
+            armSearchImeTapBlock(1600);
+          });
+          element.addEventListener("compositionend", (event) => {
+            state.searchDraft = event.target.value;
+            armSearchImeTapBlock(900);
+            window.setTimeout(() => { state.searchComposing = false; }, 80);
+          });
           element.addEventListener("input", (event) => {
-            state.query = event.target.value;
-            render();
-            const input = app.querySelector("[data-action='search-input']");
-            if (input) {
-              input.focus();
-              input.setSelectionRange(input.value.length, input.value.length);
+            state.searchDraft = event.target.value;
+            if (event.isComposing || state.searchComposing) return;
+            if (!String(state.searchDraft || "").trim() && state.query) {
+              state.query = "";
+              render();
             }
+          });
+          element.addEventListener("keydown", (event) => {
+            if (event.key !== "Enter") return;
+            if (event.isComposing || state.searchComposing || event.keyCode === 229) return;
+            event.preventDefault();
+            applySearchQueryFromInput();
           });
         }
 
@@ -6082,56 +5339,58 @@
         if (action === "clear-search") {
           element.addEventListener("click", () => {
             state.query = "";
+            state.searchDraft = "";
             state.category = "全部";
             render();
           });
         }
 
+        if (action === "submit-search") {
+          element.addEventListener("click", (event) => {
+            if (state.searchComposing || Date.now() < state.searchImeTapBlockUntil) {
+              event.preventDefault();
+              return;
+            }
+            applySearchQueryFromInput();
+          });
+        }
+
         if (action === "favorite-place-search-input") {
           element.addEventListener("compositionstart", () => {
-            favoriteSearchComposing = true;
-            armFavoriteSearchImeTapBlock(1600);
+            state.favoriteSearchComposing = true;
+            state.favoriteSearchImeTapBlockUntil = Date.now() + 1600;
           });
           element.addEventListener("compositionend", (event) => {
             state.favoriteSearchQuery = event.target.value;
-            armFavoriteSearchImeTapBlock(900);
-            window.setTimeout(() => { favoriteSearchComposing = false; }, 80);
+            state.favoriteSearchImeTapBlockUntil = Date.now() + 900;
+            window.setTimeout(() => { state.favoriteSearchComposing = false; }, 80);
           });
           element.addEventListener("input", (event) => {
-            window.clearTimeout(favoriteSearchDebounceTimer);
             state.favoriteSearchQuery = event.target.value;
-
-            // Manual search mode: do not re-render while typing or selecting IME candidate words.
-            // Re-rendering here would replace the input element and make Chinese/Japanese selection jump.
-            if (event.isComposing || favoriteSearchComposing) return;
           });
           element.addEventListener("keydown", (event) => {
             if (event.key !== "Enter") return;
-            if (event.isComposing || favoriteSearchComposing || event.keyCode === 229) return;
+            if (event.isComposing || state.favoriteSearchComposing || event.keyCode === 229) return;
             event.preventDefault();
-            window.clearTimeout(favoriteSearchDebounceTimer);
             state.favoriteSearchQuery = event.target.value;
-            runFavoritePlaceSearch({ manual: true });
+            runFavoritePlaceSearch();
           });
         }
 
         if (action === "favorite-place-search-submit") {
           element.addEventListener("click", (event) => {
-            if (favoriteSearchComposing || Date.now() < favoriteSearchImeClickBlockUntil) {
+            if (state.favoriteSearchComposing || Date.now() < state.favoriteSearchImeTapBlockUntil) {
               event.preventDefault();
               return;
             }
-            window.clearTimeout(favoriteSearchDebounceTimer);
             const input = app.querySelector("[data-action='favorite-place-search-input']");
             if (input) state.favoriteSearchQuery = input.value;
-            runFavoritePlaceSearch({ manual: true });
+            runFavoritePlaceSearch();
           });
         }
 
         if (action === "favorite-place-search-clear") {
           element.addEventListener("click", () => {
-            window.clearTimeout(favoriteSearchDebounceTimer);
-            favoriteSearchRequestSeq += 1;
             state.favoriteSearchQuery = "";
             state.favoriteSearchResults = [];
             state.favoriteSearchError = "";
@@ -6159,12 +5418,6 @@
               render();
               return;
             }
-            window.clearTimeout(favoriteSearchDebounceTimer);
-            favoriteSearchRequestSeq += 1;
-            state.favoriteSearchQuery = "";
-            state.favoriteSearchResults = [];
-            state.favoriteSearchError = "";
-            state.favoriteSearchLoading = false;
             sendWrite("create", {
               type: "收藏",
               title,
@@ -6173,16 +5426,22 @@
               notice: "",
               priority: ""
             });
+            state.favoriteSearchQuery = "";
+            state.favoriteSearchResults = [];
+            state.favoriteSearchError = "";
+            state.favoriteSearchLoading = false;
+          });
+        }
+
+        if (action === "favorite-category-filter") {
+          element.addEventListener("click", () => {
+            state.favoriteCategory = element.dataset.favoriteCategory || "全部";
+            render();
           });
         }
 
         if (action === "open-stop") {
-          element.addEventListener("click", (event) => {
-            if (quickActionSuppressClick) {
-              event.preventDefault();
-              event.stopPropagation();
-              return;
-            }
+          element.addEventListener("click", () => {
             state.previousScreen = state.screen === "detail" ? state.previousScreen : state.screen;
             state.selectedStopId = element.dataset.stopId || "";
             state.selectedFavoriteId = "";
@@ -6193,12 +5452,7 @@
         }
 
         if (action === "open-favorite") {
-          element.addEventListener("click", (event) => {
-            if (quickActionSuppressClick) {
-              event.preventDefault();
-              event.stopPropagation();
-              return;
-            }
+          element.addEventListener("click", () => {
             state.previousScreen = state.screen === "favorite-detail" ? state.previousScreen : state.screen;
             state.selectedFavoriteId = element.dataset.favoriteId || "";
             state.selectedStopId = "";
@@ -6284,37 +5538,26 @@
             const form = event.currentTarget;
             const data = Object.fromEntries(new FormData(form).entries());
             const payload = {
-              id: String(data.id || "").trim(),
-              type: String(data.type || "行程").trim(),
-              date: String(data.date || "").trim(),
-              time: String(data.time || "").trim(),
-              endTime: String(data.endTime || "").trim(),
-              title: String(data.title || "").trim(),
-              category: String(data.category || "景點").trim() || "景點",
-              area: String(data.area || "").trim(),
-              address: String(data.address || "").trim(),
-              notice: String(data.notice || "").trim(),
-              imageUrl: String(data.imageUrl || "").trim(),
-              priority: String(data.priority || "").trim()
+              id: data.id || "",
+              type: data.type || "行程",
+              date: data.date || "",
+              time: data.time || "",
+              endTime: data.endTime || "",
+              title: data.title || "",
+              category: data.category || "景點",
+              area: data.area || "",
+              address: data.address || "",
+              notice: data.notice || "",
+              imageUrl: data.imageUrl || "",
+              priority: data.priority || ""
             };
 
-            const payloadType = normalizeTypeValue(payload.type);
-            if (payloadType === "itinerary" && !payload.date) {
-              state.message = "請先選擇日期";
-              render();
-              return;
-            }
-            if (!payload.title) {
-              state.message = "請先輸入標題";
-              render();
-              return;
-            }
-            const startMinutes = toMinutes(payload.time);
-            const endMinutes = toMinutes(payload.endTime);
-            if (startMinutes !== null && endMinutes !== null && endMinutes < startMinutes) {
-              state.message = "結束時間不能早於開始時間";
-              render();
-              return;
+            const conflictMessage = timeConflictMessage(payload);
+            if (conflictMessage) {
+              const proceed = confirm(`${conflictMessage}
+
+仍然要儲存嗎？`);
+              if (!proceed) return;
             }
 
             if (state.formMode === "convert") {
@@ -6323,7 +5566,6 @@
             }
 
             const actionName = state.formMode === "edit" ? "update" : "create";
-            if (actionName === "update") payload._targetId = state.formId;
             sendWrite(actionName, payload);
           });
         }
@@ -6348,19 +5590,12 @@
           });
         }
 
-        if (action === "money-date-input") {
-          element.addEventListener("change", (event) => {
-            state.selectedDate = event.target.value || todayISO();
-            render();
-          });
-        }
-
 
         if (action === "save-money-settings") {
           element.addEventListener("submit", (event) => {
             event.preventDefault();
             const data = Object.fromEntries(new FormData(event.currentTarget).entries());
-            const fxRate = normalizeMoneyAmount(data.fxRate);
+            const fxRate = Number(String(data.fxRate || "").replace(/,/g, ""));
             if (!Number.isFinite(fxRate) || fxRate <= 0) {
               state.message = "匯率格式不正確";
               render();
@@ -6371,8 +5606,8 @@
             state.cashWallet = {
               JPY: Object.fromEntries(FIXED_TRAVELERS.map((name) => {
                 const raw = data[`cashJPY_${name}`] || "0";
-                const amount = normalizeMoneyAmount(raw);
-                return [name, amount];
+                const amount = Number(String(raw).replace(/,/g, ""));
+                return [name, Number.isFinite(amount) ? Math.max(0, amount) : 0];
               }))
             };
             state.travelers = [...FIXED_TRAVELERS];
@@ -6384,7 +5619,7 @@
             saveCashWallet();
             saveTravelers();
             saveExpenses();
-            state.moneySettingsOpen = false;
+            state.moneySettingsOpen = true;
             state.message = "匯率跟三人日幣現金已更新";
             render();
           });
@@ -6411,23 +5646,7 @@
           });
         }
 
-        if (action === "add-amount-shortcut") {
-          element.addEventListener("click", () => {
-            const form = element.closest("form");
-            const input = form ? form.querySelector("input[name='amount']") : null;
-            if (!input) return;
-            const current = normalizeMoneyAmount(input.value);
-            const addValue = Number(element.dataset.amount || 0);
-            input.value = String(current + addValue);
-            input.focus();
-            updateExpenseCashPreview(form);
-          });
-        }
-
         if (action === "add-expense") {
-          element.addEventListener("input", () => updateExpenseCashPreview(element));
-          element.addEventListener("change", () => updateExpenseCashPreview(element));
-          window.requestAnimationFrame(() => updateExpenseCashPreview(element));
           element.addEventListener("submit", (event) => {
             event.preventDefault();
             const data = Object.fromEntries(new FormData(event.currentTarget).entries());
@@ -6440,7 +5659,7 @@
             const expense = {
               id: `expense_${Date.now()}_${Math.random().toString(16).slice(2)}`,
               date: data.date || state.selectedDate || todayISO(),
-              title: String(data.title || "").trim() || `${data.category || "其他"}花費`,
+              title: String(data.title || "").trim() || "未命名花費",
               amount,
               currency: data.currency === "TWD" ? "TWD" : "JPY",
               payer: normalizePayerName(data.payer || state.travelers[0] || FIXED_TRAVELERS[0]),
@@ -6449,8 +5668,6 @@
               note: String(data.note || "").trim(),
               createdAt: new Date().toISOString()
             };
-            state.expenseDraft = { currency: expense.currency, payer: expense.payer, payment: expense.payment, category: expense.category };
-            state.selectedDate = expense.date;
             state.expenses = [expense, ...state.expenses];
             saveExpenses();
             state.message = "已新增花費紀錄";
@@ -6484,9 +5701,6 @@
 
       });
 
-      bindStopQuickActions();
-      bindFavoriteQuickActions();
-
       app.querySelectorAll(".expense-settings-pop").forEach((details) => {
         details.addEventListener("toggle", () => {
           state.moneySettingsOpen = details.open;
@@ -6494,27 +5708,15 @@
       });
     }
 
-    async function loadRows(force = false, options = {}) {
-      const silent = Boolean(options.silent);
-      if (force && silent && shouldPauseAutoSyncForDraft()) return;
-      if (rowsLoading) return;
-      rowsLoading = true;
-
-      const previousMessage = state.message;
-      const previousSyncStatus = state.syncStatus;
-
+    async function loadRows(force = false) {
       state.loading = true;
-      if (force && !silent) {
-        state.message = "正在同步 Google Sheet 最新資料";
-      } else if (!force && !silent) {
-        state.message = "";
-      }
-      if (!silent) render();
+      state.message = force ? "正在同步 Google Sheet 最新資料" : "";
+      render();
 
       try {
         const controller = new AbortController();
         const timeout = window.setTimeout(() => controller.abort(), 12000);
-        const url = force ? SHEET_CSV_URL + (SHEET_CSV_URL.includes("?") ? "&" : "?") + "_=" + Date.now() : SHEET_CSV_URL;
+        const url = force ? `${SHEET_CSV_URL}${SHEET_CSV_URL.includes("?") ? "&" : "?"}_=${Date.now()}` : SHEET_CSV_URL;
 
         const response = await fetch(url, { cache: "no-store", signal: controller.signal });
         window.clearTimeout(timeout);
@@ -6527,51 +5729,35 @@
 
         state.rows = parsed;
         localStorage.setItem("trip-html:google-sheet-live-v1", JSON.stringify(parsed));
-
-        if (force && silent) {
-          state.message = previousMessage === "已送出" || previousMessage === "已先在本機顯示" || previousMessage === "已先從本機移除"
-            ? ""
-            : previousMessage;
-          state.syncStatus = "已自動同步最新資料";
-        } else {
-          state.message = force ? "已同步最新資料" : "";
-        }
+        state.message = force ? "已同步最新資料" : "";
       } catch (error) {
         const cached = localStorage.getItem("trip-html:google-sheet-live-v1");
         if (cached) {
           state.rows = JSON.parse(cached).map(normalizeRow);
-          state.message = silent ? previousMessage : "目前顯示上次儲存的行程";
-          state.syncStatus = silent ? (previousSyncStatus || "自動同步失敗，暫用本機資料") : state.syncStatus;
+          state.message = "目前顯示上次儲存的行程";
         } else {
           state.rows = SAMPLE_ROWS;
-          state.message = silent ? previousMessage : "目前暫時顯示內建行程，雲端資料連線後會自動更新";
-          state.syncStatus = silent ? (previousSyncStatus || "自動同步失敗") : state.syncStatus;
+          state.message = "目前暫時顯示內建行程，雲端資料連線後會自動更新";
         }
       } finally {
-        rowsLoading = false;
         state.loading = false;
         ensureSelectedDate();
         render();
 
-        if (state.message === "已同步最新資料" || state.syncStatus === "已自動同步最新資料") {
+        if (state.message === "已同步最新資料") {
           setTimeout(() => {
-            if (state.message === "已同步最新資料") state.message = "";
-            if (state.syncStatus === "已自動同步最新資料") state.syncStatus = "";
-            render();
+            if (state.message === "已同步最新資料") {
+              state.message = "";
+              render();
+            }
           }, 1800);
         }
       }
     }
 
     ["pointerdown", "pointerup", "touchstart", "touchend", "mousedown", "mouseup", "click"].forEach((eventName) => {
-      app.addEventListener(eventName, blockFavoriteSearchImeGhostTap, true);
+      app.addEventListener(eventName, blockSearchImeGhostTap, true);
     });
-
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") scheduleResumeSync();
-    });
-
-    window.addEventListener("focus", scheduleResumeSync);
 
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
@@ -6579,7 +5765,6 @@
       });
     }
 
-    lastResumeSyncAt = Date.now();
     render();
     loadRows(false);
     maybeAutoUpdateFxRate();
