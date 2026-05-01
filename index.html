@@ -4263,8 +4263,29 @@
       }, 7600);
     }
 
+    function isEditableElementActive() {
+      const active = document.activeElement;
+      if (!active || active === document.body) return false;
+      return Boolean(active.closest("input, textarea, select, [contenteditable='true']"));
+    }
+
+    function hasUnsavedExpenseDraftInDom() {
+      // 花費頁的新增表單是常駐式輸入區；只要表單在畫面上，就不要讓自動同步重畫頁面。
+      return Boolean(document.querySelector(".expense-form-visual"));
+    }
+
+    function hasUnsavedItineraryDraftInDom() {
+      if (!state.formMode) return false;
+      return Boolean(document.querySelector(".form-card"));
+    }
+
+    function shouldPauseAutoSyncForDraft() {
+      return hasUnsavedItineraryDraftInDom() || hasUnsavedExpenseDraftInDom() || isEditableElementActive();
+    }
+
     function scheduleResumeSync() {
       if (document.visibilityState && document.visibilityState !== "visible") return;
+      if (shouldPauseAutoSyncForDraft()) return;
       const now = Date.now();
       if (now - lastResumeSyncAt < 15000) return;
       lastResumeSyncAt = now;
@@ -5727,10 +5748,11 @@
     }
 
     async function loadRows(force = false, options = {}) {
+      const silent = Boolean(options.silent);
+      if (force && silent && shouldPauseAutoSyncForDraft()) return;
       if (rowsLoading) return;
       rowsLoading = true;
 
-      const silent = Boolean(options.silent);
       const previousMessage = state.message;
       const previousSyncStatus = state.syncStatus;
 
