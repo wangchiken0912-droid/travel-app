@@ -3814,6 +3814,7 @@
 
     const app = document.getElementById("app");
     let messageClearTimer = null;
+    let syncStatusClearTimer = null;
     let actionSheetScrollY = 0;
 
     function escapeHtml(value) {
@@ -4141,61 +4142,83 @@
       });
     }
 
-        function getExpenseSplitLabel(item) {
-      if (item.splitType === "all") return `全員平分${item.groupSize ? `（${item.groupSize} 人）` : ""}`;
-      if (item.splitType === "custom") return `自訂分攤${Array.isArray(item.splitWith) && item.splitWith.length ? `（${item.splitWith.join("、")}）` : ""}`;
+    function compactExpenseTitle(value) {
+      const title = String(value || "").trim();
+      if (!title || /^[\s.。．、,，;；:：\-—_]+$/.test(title)) return "未命名花費";
+      return title;
+    }
+
+    function formatExpenseShortDate(dateString) {
+      if (!dateString) return "未設定日期";
+      const match = String(dateString).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) return `${Number(match[2])}/${Number(match[3])}`;
+      const date = new Date(dateString);
+      if (Number.isNaN(date.getTime())) return String(dateString);
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    }
+
+    function getExpenseSplitLabel(item) {
+      if (item.splitType === "all") return "全員平分";
+      if (item.splitType === "custom") return "自訂分攤";
       return "個人花費";
     }
 
     function buildExpenseCopyText(item, index = null) {
-      const lines = [];
-      const numberLabel = index === null ? "" : `${String(index + 1).padStart(2, "0")}｜`;
-      lines.push(`${numberLabel}${item.date || ""}｜${item.title || "未命名花費"}`);
-      lines.push(`金額：${formatMoney(item.amount, item.currency)}`);
-      lines.push(`歸屬：${item.owner || item.payer || ""}`);
-      lines.push(`付款：${item.paidBy || item.payer || ""}`);
-      lines.push(`分攤：${getExpenseSplitLabel(item)}`);
-      lines.push(`分類：${item.category || "其他"}｜付款方式：${item.payment || "現金"}`);
-      if (item.note) lines.push(`備註：${item.note}`);
-      return lines.join("\n");
+      const numberLabel = index === null ? "" : `${index + 1}. `;
+      const title = compactExpenseTitle(item.title);
+      const category = item.category || "其他";
+      const amountTwd = formatMoney(Math.round(expenseToTwd(item)), "TWD");
+      const owner = item.owner || item.payer || "";
+      const paidBy = item.paidBy || item.payer || "";
+      return `${numberLabel}${formatExpenseShortDate(item.date)} ${title}（${category}）${amountTwd}｜${owner}｜${paidBy}付`;
+    }
+
+    function getExpenseExportList() {
+      const scoped = getScopedExpenses();
+      const ownerFilter = state.expenseOwnerFilter || "all";
+      if (ownerFilter === "all") return scoped;
+      return scoped.filter((item) => (item.owner || item.payer) === ownerFilter);
+    }
+
+    function sumExpensesByPaidBy(list, name) {
+      return sumExpenses(list.filter((item) => (item.paidBy || item.payer) === name));
     }
 
     function buildExpenseSummaryText() {
-      const scoped = getScopedExpenses();
-      const totals = sumExpenses(scoped);
-      const travelerStats = getTravelerExpenseStats(scoped);
-      const scopeText = state.moneyScope === "day" ? `今日 ${formatLongDate(todayISO())}` : "全旅程";
+      const exportList = getExpenseExportList();
+      const totals = sumExpenses(exportList);
+      const ownerFilter = state.expenseOwnerFilter || "all";
+      const names = ownerFilter === "all"
+        ? (state.travelers && state.travelers.length ? state.travelers : getStoredTravelers())
+        : [ownerFilter];
+      const travelerStats = getTravelerExpenseStats(exportList).filter((person) => names.includes(person.name));
+      const scopeText = state.moneyScope === "day" ? `今日 ${formatExpenseShortDate(todayISO())}` : "全旅程";
       const lines = [];
 
-      lines.push("【花費摘要】");
-      lines.push(`範圍：${scopeText}`);
-      lines.push(`匯率：1 日幣 = ${state.fxRate} 台幣`);
+      lines.push("【旅費摘要】");
+      lines.push(`${scopeText}｜${formatMoney(Math.round(totals.TWDConverted), "TWD")}`);
+      lines.push(`匯率：¥1 ≈ NT$${state.fxRate}`);
+      if (ownerFilter !== "all") lines.push(`篩選：${ownerFilter}`);
       lines.push("");
 
-      lines.push("【總花費】");
-      lines.push(`合計：約 ${formatMoney(Math.round(totals.TWDConverted), "TWD")}`);
-      lines.push(`日幣：${formatMoney(totals.JPY, "JPY")}`);
-      lines.push(`台幣：${formatMoney(totals.TWD, "TWD")}`);
-      lines.push("");
-
-      lines.push("【日幣現金剩餘】");
-      FIXED_TRAVELERS.forEach((name) => {
-        lines.push(`- ${name}：${formatMoney(getTravelerCashRemaining(name), "JPY")}`);
-      });
-      lines.push("");
-
-      lines.push("【每個人已花費】");
+      lines.push("【各人花費】");
       travelerStats.forEach((person) => {
-        lines.push(`- ${person.name}：約 ${formatMoney(Math.round(person.TWDConverted), "TWD")}｜${formatMoney(person.JPY, "JPY")}｜${formatMoney(person.TWD, "TWD")}｜${person.count} 筆`);
+        lines.push(`${person.name}｜${formatMoney(Math.round(person.TWDConverted), "TWD")}｜${person.count} 筆`);
       });
       lines.push("");
 
-      lines.push("【花費明細】");
-      if (!scoped.length) {
+      lines.push("【實際付款】");
+      names.forEach((name) => {
+        const paidTotals = sumExpensesByPaidBy(exportList, name);
+        lines.push(`${name}｜${formatMoney(Math.round(paidTotals.TWDConverted), "TWD")}`);
+      });
+      lines.push("");
+
+      lines.push("【明細】");
+      if (!exportList.length) {
         lines.push("目前沒有花費紀錄");
       } else {
-        scoped.forEach((item, index) => {
-          if (index > 0) lines.push("────────────");
+        exportList.forEach((item, index) => {
           lines.push(buildExpenseCopyText(item, index));
         });
       }
@@ -5493,6 +5516,13 @@
 
         state.syncStatus = successMessage;
         render();
+        if (syncStatusClearTimer) window.clearTimeout(syncStatusClearTimer);
+        syncStatusClearTimer = window.setTimeout(() => {
+          if (state.syncStatus === successMessage) {
+            state.syncStatus = "";
+            render();
+          }
+        }, 1800);
         window.setTimeout(() => loadRows(true), 2200);
       } catch (error) {
         state.syncStatus = "花費同步失敗，已先保留在本機，請網路穩定後再試";
@@ -5826,14 +5856,18 @@
       const amount = normalizeMoneyAmount(data.amount);
       if (!amount) return [];
 
-      const splitType = ["self", "all", "custom"].includes(data.splitType) ? data.splitType : "self";
+      let splitType = ["self", "all", "custom"].includes(data.splitType) ? data.splitType : "self";
       const paidBy = normalizePayerName(data.paidBy || data.payer || state.travelers[0] || FIXED_TRAVELERS[0]);
-      const customSplitWith = formData.getAll("splitWith")
+      const travelers = state.travelers && state.travelers.length ? state.travelers : getStoredTravelers();
+      const customSplitWith = [...new Set(formData.getAll("splitWith")
         .map(normalizePayerName)
-        .filter((name) => Boolean(name) && name !== paidBy);
+        .filter((name) => Boolean(name) && name !== paidBy))];
       if (splitType === "custom" && !customSplitWith.length) return [];
+      if (splitType === "custom" && customSplitWith.length >= Math.max(0, travelers.length - 1)) {
+        splitType = "all";
+      }
       const owners = splitType === "all"
-        ? [...state.travelers]
+        ? [...travelers]
         : splitType === "custom"
           ? [paidBy, ...customSplitWith]
           : [normalizePayerName(data.owner || paidBy)];
@@ -5955,13 +5989,13 @@
                 </div>
               </section>
               <section class="visual-block split-custom-panel">
-                <div class="visual-label">自訂分攤對象</div>
+                <div class="visual-label">另外一起分攤的人</div>
                 <div class="visual-choice-row">
                   ${state.travelers.map((name) => `
                     <label class="visual-choice"><input type="checkbox" name="splitWith" value="${attr(name)}" ${selectedOwners.includes(name) ? "checked" : ""}><span>${escapeHtml(name)}</span></label>
                   `).join("")}
                 </div>
-                <div class="visual-cash-hint">付款人會自動鎖定加入分攤，這裡只需要勾選其他要一起分的人</div>
+                <div class="visual-cash-hint">付款人會自動加入分攤，這裡只勾選其他一起分的人</div>
               </section>
             `}
             <section class="visual-secondary-fields">
@@ -6152,7 +6186,7 @@
               </section>
 
               <section class="visual-block split-custom-panel">
-                <div class="visual-label">自訂分攤對象</div>
+                <div class="visual-label">另外一起分攤的人</div>
                 <div class="visual-choice-row">
                   ${state.travelers.map((name) => `
                     <label class="visual-choice">
@@ -6161,7 +6195,7 @@
                     </label>
                   `).join("")}
                 </div>
-                <div class="visual-cash-hint">付款人會自動鎖定加入分攤，這裡只需要勾選其他要一起分的人</div>
+                <div class="visual-cash-hint">付款人會自動加入分攤，這裡只勾選其他一起分的人</div>
               </section>
 
               <section class="visual-block">
@@ -6555,13 +6589,13 @@
           const isPayer = paidBy && normalizePayerName(input.value) === paidBy;
 
           if (isPayer) {
-            input.checked = true;
+            input.checked = false;
             input.disabled = true;
-            label?.classList.add('locked');
+            label?.classList.add('hidden');
             input.setAttribute('aria-disabled', 'true');
           } else {
             input.disabled = false;
-            label?.classList.remove('locked');
+            label?.classList.remove('hidden');
             input.removeAttribute('aria-disabled');
           }
         });
@@ -7244,7 +7278,7 @@
             if (mode === "group" && item.groupId) {
               const newGroupItems = createExpenseRowsFromExpenseForm(data, formData, { groupId: item.groupId, createdAt: new Date().toISOString() });
               if (!newGroupItems.length) {
-                state.message = data.splitType === "custom" ? "自訂分攤至少要選一位其他分攤者" : "整組花費資料不完整";
+                state.message = data.splitType === "custom" ? "自訂分攤至少要選 1 位其他一起分攤的人" : "整組花費資料不完整";
                 render();
                 return;
               }
@@ -7306,7 +7340,7 @@
 
             const newExpenses = createExpenseRowsFromExpenseForm(data, formData);
             if (!newExpenses.length) {
-              state.message = data.splitType === "custom" ? "自訂分攤至少要選一位其他分攤者" : "花費資料不完整";
+              state.message = data.splitType === "custom" ? "自訂分攤至少要選 1 位其他一起分攤的人" : "花費資料不完整";
               render();
               return;
             }
