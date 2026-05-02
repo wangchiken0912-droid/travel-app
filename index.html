@@ -4888,6 +4888,7 @@
     function syncActionSheetScrollLock() {
       const shouldLock = hasOpenActionSheet();
       const isLocked = document.body.classList.contains("action-sheet-open");
+      const isBodyFixed = document.body.style.position === "fixed";
 
       if (shouldLock && !isLocked) {
         actionSheetScrollY = window.scrollY || document.documentElement.scrollTop || 0;
@@ -4900,14 +4901,15 @@
         return;
       }
 
-      if (!shouldLock && isLocked) {
+      if (!shouldLock && (isLocked || isBodyFixed)) {
+        const restoreY = actionSheetScrollY || Math.abs(parseInt(document.body.style.top || "0", 10)) || 0;
         document.body.classList.remove("action-sheet-open");
         document.body.style.position = "";
         document.body.style.top = "";
         document.body.style.left = "";
         document.body.style.right = "";
         document.body.style.width = "";
-        window.scrollTo(0, actionSheetScrollY || 0);
+        window.scrollTo(0, restoreY);
       }
     }
 
@@ -6296,10 +6298,6 @@
 
     function render() {
       ensureSelectedDate();
-
-      if (!hasOpenActionSheet()) {
-        document.body.classList.remove("action-sheet-open");
-      }
 
       if (state.loading && !state.rows.length) {
         app.innerHTML = `
