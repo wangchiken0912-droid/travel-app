@@ -2173,6 +2173,10 @@
       display: none !important;
     }
 
+    .visual-choice[data-split-person].hidden {
+      display: none !important;
+    }
+
     @media (min-width: 760px) {
       body {
         background: #ffffff;
@@ -3606,6 +3610,32 @@
       line-height: 1.2 !important;
     }
 
+
+    .expense-record-amount-simple {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 2px;
+      min-width: 86px;
+      text-align: right;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .expense-amount-main {
+      color: var(--text);
+      font-size: 17px;
+      font-weight: 950;
+      letter-spacing: -0.02em;
+    }
+
+    .expense-amount-sub {
+      color: var(--light);
+      font-size: 11.5px;
+      font-weight: 850;
+      letter-spacing: -0.01em;
+    }
   </style>
 </head>
 
@@ -4089,6 +4119,16 @@
     function expenseToTwd(expense) {
       const amount = Number(expense.amount || 0);
       return expense.currency === "JPY" ? amount * state.fxRate : amount;
+    }
+
+    function expenseCardAmountHtml(expense) {
+      const twdAmount = formatTwdDollar(expenseToTwd(expense));
+      const originalAmount = expense.currency === "JPY" ? formatMoney(expense.amount, "JPY") : "";
+
+      return `
+        <span class="expense-amount-main">${escapeHtml(twdAmount)}</span>
+        ${originalAmount ? `<span class="expense-amount-sub">${escapeHtml(originalAmount)}</span>` : ""}
+      `;
     }
 
     function getScopedExpenses() {
@@ -5973,7 +6013,7 @@
                 <div class="visual-label">另外一起分攤的人</div>
                 <div class="visual-choice-row">
                   ${state.travelers.map((name) => `
-                    <label class="visual-choice"><input type="checkbox" name="splitWith" value="${attr(name)}" ${selectedOwners.includes(name) ? "checked" : ""}><span>${escapeHtml(name)}</span></label>
+                    <label class="visual-choice" data-split-person="${attr(name)}"><input type="checkbox" name="splitWith" value="${attr(name)}" ${selectedOwners.includes(name) ? "checked" : ""}><span>${escapeHtml(name)}</span></label>
                   `).join("")}
                 </div>
               </section>
@@ -6167,9 +6207,9 @@
               <section class="visual-block split-custom-panel">
                 <div class="visual-label">另外一起分攤的人</div>
                 <div class="visual-choice-row">
-                  ${state.travelers.map((name) => `
-                    <label class="visual-choice">
-                      <input type="checkbox" name="splitWith" value="${attr(name)}">
+                  ${state.travelers.map((name, index) => `
+                    <label class="visual-choice ${index === 0 ? "hidden" : ""}" data-split-person="${attr(name)}" ${index === 0 ? "style=\"display:none;\"" : ""}>
+                      <input type="checkbox" name="splitWith" value="${attr(name)}" ${index === 0 ? "disabled aria-disabled=\"true\"" : ""}>
                       <span>${escapeHtml(name)}</span>
                     </label>
                   `).join("")}
@@ -6264,8 +6304,7 @@
                       </div>
                     </div>
                     <div class="expense-record-amount-simple">
-                      ${escapeHtml(formatMoney(item.amount, item.currency))}
-                      ${item.currency === "TWD" ? "" : `<span>約 ${escapeHtml(formatMoney(Math.round(expenseToTwd(item)), "TWD"))}</span>`}
+                      ${expenseCardAmountHtml(item)}
                     </div>
                   </article>
                 `).join("")}
@@ -6569,12 +6608,20 @@
           if (isPayer) {
             input.checked = false;
             input.disabled = true;
-            label?.classList.add('hidden');
             input.setAttribute('aria-disabled', 'true');
+            if (label) {
+              label.classList.add('hidden');
+              label.style.display = 'none';
+              label.setAttribute('aria-hidden', 'true');
+            }
           } else {
             input.disabled = false;
-            label?.classList.remove('hidden');
             input.removeAttribute('aria-disabled');
+            if (label) {
+              label.classList.remove('hidden');
+              label.style.display = '';
+              label.removeAttribute('aria-hidden');
+            }
           }
         });
       });
