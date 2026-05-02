@@ -2869,6 +2869,21 @@
       padding: 18px;
     }
 
+    body.action-sheet-open {
+      overflow: hidden;
+      overscroll-behavior: contain;
+      touch-action: none;
+    }
+
+    body.action-sheet-open .app {
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    body.action-sheet-open .action-sheet {
+      touch-action: auto;
+    }
+
     .action-sheet {
       width: min(100%, 430px);
       margin: 0 auto calc(72px + var(--safe-bottom));
@@ -3734,6 +3749,7 @@
       quickFavoriteActionId: "",
       quickExpenseActionId: "",
       longPressIgnoreClickUntil: 0,
+      actionSheetBlockTapUntil: 0,
       moneySettingsOpen: false,
       fxAutoChecked: false,
       loading: true,
@@ -4857,6 +4873,19 @@
       }, 1800);
     }
 
+    function hasOpenActionSheet() {
+      return Boolean(
+        state.quickStopActionId ||
+        state.quickFavoriteActionId ||
+        state.quickExpenseActionId ||
+        state.expenseEditChoiceId
+      );
+    }
+
+    function syncActionSheetScrollLock() {
+      document.body.classList.toggle("action-sheet-open", hasOpenActionSheet());
+    }
+
     function todayPageHtml() {
       const settings = getSettings();
       const dates = getDates();
@@ -5707,7 +5736,7 @@
               <button class="action-sheet-btn primary" data-action="quick-edit-stop" data-stop-id="${attr(stopId(stop))}" type="button">編輯行程 <span>›</span></button>
               <button class="action-sheet-btn" data-action="quick-copy-stop-address" data-stop-id="${attr(stopId(stop))}" type="button">複製地址 <span>›</span></button>
               <a class="action-sheet-btn" href="${attr(buildMapsSearchUrl(stop))}" target="_blank" rel="noreferrer">查看地點 <span>›</span></a>
-              <a class="action-sheet-btn" href="${attr(buildCurrentLocationDirectionsUrl(stop))}" target="_blank" rel="noreferrer">現在前往 <span>›</span></a>
+              <button class="action-sheet-btn" data-action="quick-add-stop-favorite" data-stop-id="${attr(stopId(stop))}" type="button">加收藏 <span>›</span></button>
               <button class="action-sheet-btn danger" data-action="quick-delete-stop" data-stop-id="${attr(stopId(stop))}" type="button">刪除行程 <span>›</span></button>
               <button class="action-sheet-btn" data-action="close-quick-stop-menu" type="button">取消</button>
             </div>
@@ -5729,7 +5758,7 @@
             </div>
             <div class="action-sheet-grid">
               <button class="action-sheet-btn primary" data-action="quick-convert-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">加入行程 <span>›</span></button>
-              <button class="action-sheet-btn" data-action="quick-edit-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">編輯收藏 <span>›</span></button>
+              <button class="action-sheet-btn" data-action="quick-edit-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">編輯分類 <span>›</span></button>
               <button class="action-sheet-btn" data-action="quick-copy-favorite-address" data-favorite-id="${attr(favoriteId(place))}" type="button">複製地址 <span>›</span></button>
               <a class="action-sheet-btn" href="${attr(buildMapsSearchUrl(place))}" target="_blank" rel="noreferrer">查看地點 <span>›</span></a>
               <button class="action-sheet-btn danger" data-action="quick-delete-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">刪除收藏 <span>›</span></button>
@@ -6243,6 +6272,10 @@
     function render() {
       ensureSelectedDate();
 
+      if (!hasOpenActionSheet()) {
+        document.body.classList.remove("action-sheet-open");
+      }
+
       if (state.loading && !state.rows.length) {
         app.innerHTML = `
           ${topHtml("旅遊行程")}
@@ -6266,6 +6299,7 @@
       if (state.screen === "form") html = formPageHtml();
 
       app.innerHTML = html + quickStopActionSheetHtml() + quickFavoriteActionSheetHtml() + quickExpenseActionSheetHtml() + (["detail", "favorite-detail", "form"].includes(state.screen) ? "" : bottomNavHtml());
+      syncActionSheetScrollLock();
       bindEvents();
       setupSwipeBack();
       scheduleMessageClear();
@@ -6274,6 +6308,18 @@
     function bindEvents() {
       app.querySelectorAll("[data-action]").forEach((element) => {
         const action = element.dataset.action;
+
+        if (element.closest(".action-sheet")) {
+          const blockFreshActionSheetTap = (event) => {
+            if (Date.now() < Number(state.actionSheetBlockTapUntil || 0)) {
+              event.preventDefault();
+              event.stopImmediatePropagation();
+            }
+          };
+          element.addEventListener("click", blockFreshActionSheetTap, true);
+          element.addEventListener("touchend", blockFreshActionSheetTap, true);
+          element.addEventListener("pointerup", blockFreshActionSheetTap, true);
+        }
 
         if (action === "open-edit-mode") {
           element.addEventListener("click", () => requireEditMode());
@@ -6595,6 +6641,24 @@
             if (!stop) return;
             state.quickStopActionId = "";
             copyTextToClipboard(stop.address || stop.title || "", "地址已複製");
+            render();
+          });
+        }
+
+        if (action === "quick-add-stop-favorite") {
+          element.addEventListener("click", () => {
+            const stop = findStopById(element.dataset.stopId || state.quickStopActionId);
+            if (!stop) return;
+            const id = stopId(stop);
+            state.quickStopActionId = "";
+            if (!state.favorites.includes(id)) {
+              state.favorites = [...state.favorites, id];
+              saveFavoriteIds();
+              state.message = "已加入收藏";
+            } else {
+              state.message = "已在收藏中";
+            }
+            state.syncStatus = "";
             render();
           });
         }
@@ -6991,6 +7055,7 @@
               const id = getId(element);
               if (!id) return;
               state.longPressIgnoreClickUntil = Date.now() + 1200;
+              state.actionSheetBlockTapUntil = Date.now() + 650;
               if (navigator.vibrate) navigator.vibrate(8);
               openMenu(id);
               render();
@@ -7007,6 +7072,7 @@
           const end = (event) => {
             clear();
             if (fired) {
+              state.actionSheetBlockTapUntil = Math.max(Number(state.actionSheetBlockTapUntil || 0), Date.now() + 180);
               event.preventDefault();
               event.stopPropagation();
             }
@@ -7105,6 +7171,13 @@
         }
       }
     }
+
+    document.addEventListener("touchmove", (event) => {
+      if (!document.body.classList.contains("action-sheet-open")) return;
+      if (event.target.closest(".action-sheet-backdrop")) {
+        event.preventDefault();
+      }
+    }, { passive: false });
 
     ["pointerdown", "pointerup", "touchstart", "touchend", "mousedown", "mouseup", "click"].forEach((eventName) => {
       app.addEventListener(eventName, blockSearchImeGhostTap, true);
