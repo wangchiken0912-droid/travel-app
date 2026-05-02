@@ -4046,31 +4046,65 @@
       });
     }
 
-        function buildExpenseSummaryText() {
+        function getExpenseSplitLabel(item) {
+      if (item.splitType === "all") return `全員平分${item.groupSize ? `（${item.groupSize} 人）` : ""}`;
+      if (item.splitType === "custom") return `自訂分攤${Array.isArray(item.splitWith) && item.splitWith.length ? `（${item.splitWith.join("、")}）` : ""}`;
+      return "個人花費";
+    }
+
+    function buildExpenseCopyText(item, index = null) {
+      const lines = [];
+      const numberLabel = index === null ? "" : `${String(index + 1).padStart(2, "0")}｜`;
+      lines.push(`${numberLabel}${item.date || ""}｜${item.title || "未命名花費"}`);
+      lines.push(`金額：${formatMoney(item.amount, item.currency)}`);
+      lines.push(`歸屬：${item.owner || item.payer || ""}`);
+      lines.push(`付款：${item.paidBy || item.payer || ""}`);
+      lines.push(`分攤：${getExpenseSplitLabel(item)}`);
+      lines.push(`分類：${item.category || "其他"}｜付款方式：${item.payment || "現金"}`);
+      if (item.note) lines.push(`備註：${item.note}`);
+      return lines.join("\n");
+    }
+
+    function buildExpenseSummaryText() {
       const scoped = getScopedExpenses();
       const totals = sumExpenses(scoped);
       const travelerStats = getTravelerExpenseStats(scoped);
       const scopeText = state.moneyScope === "day" ? `今日 ${formatLongDate(todayISO())}` : "全旅程";
       const lines = [];
-      lines.push(`花費紀錄｜${scopeText}`);
+
+      lines.push("【花費摘要】");
+      lines.push(`範圍：${scopeText}`);
       lines.push(`匯率：1 日幣 = ${state.fxRate} 台幣`);
-      lines.push(`總花費：約 ${formatMoney(Math.round(totals.TWDConverted), "TWD")}`);
-      lines.push(`日幣花費：${formatMoney(totals.JPY, "JPY")}`);
-      lines.push(`台幣花費：${formatMoney(totals.TWD, "TWD")}`);
-      lines.push("日幣現金剩餘：");
+      lines.push("");
+
+      lines.push("【總花費】");
+      lines.push(`合計：約 ${formatMoney(Math.round(totals.TWDConverted), "TWD")}`);
+      lines.push(`日幣：${formatMoney(totals.JPY, "JPY")}`);
+      lines.push(`台幣：${formatMoney(totals.TWD, "TWD")}`);
+      lines.push("");
+
+      lines.push("【日幣現金剩餘】");
       FIXED_TRAVELERS.forEach((name) => {
-        lines.push(`${name}：${formatMoney(getTravelerCashRemaining(name), "JPY")}`);
+        lines.push(`- ${name}：${formatMoney(getTravelerCashRemaining(name), "JPY")}`);
       });
       lines.push("");
-      lines.push("每個人已花費：");
+
+      lines.push("【每個人已花費】");
       travelerStats.forEach((person) => {
-        lines.push(`${person.name}：約 ${formatMoney(Math.round(person.TWDConverted), "TWD")}（${formatMoney(person.JPY, "JPY")} / ${formatMoney(person.TWD, "TWD")}）`);
+        lines.push(`- ${person.name}：約 ${formatMoney(Math.round(person.TWDConverted), "TWD")}｜${formatMoney(person.JPY, "JPY")}｜${formatMoney(person.TWD, "TWD")}｜${person.count} 筆`);
       });
       lines.push("");
-      scoped.forEach((item, index) => {
-        lines.push(`${index + 1}. ${item.date}｜${item.title}｜${formatMoney(item.amount, item.currency)}｜算 ${item.owner || item.payer}｜${item.paidBy || item.payer}付款｜${item.category}｜${item.payment}`);
-        if (item.note) lines.push(`備註：${item.note}`);
-      });
+
+      lines.push("【花費明細】");
+      if (!scoped.length) {
+        lines.push("目前沒有花費紀錄");
+      } else {
+        scoped.forEach((item, index) => {
+          if (index > 0) lines.push("────────────");
+          lines.push(buildExpenseCopyText(item, index));
+        });
+      }
+
       return lines.join("\n").trim();
     }
 
@@ -4888,28 +4922,26 @@
     function syncActionSheetScrollLock() {
       const shouldLock = hasOpenActionSheet();
       const isLocked = document.body.classList.contains("action-sheet-open");
-      const isBodyFixed = document.body.style.position === "fixed";
+      const wasFixed = document.body.style.position === "fixed";
+      const fixedRestoreY = wasFixed ? Math.abs(parseInt(document.body.style.top || "0", 10)) || actionSheetScrollY || 0 : 0;
 
       if (shouldLock && !isLocked) {
         actionSheetScrollY = window.scrollY || document.documentElement.scrollTop || 0;
         document.body.classList.add("action-sheet-open");
-        document.body.style.position = "fixed";
-        document.body.style.top = `-${actionSheetScrollY}px`;
-        document.body.style.left = "0";
-        document.body.style.right = "0";
-        document.body.style.width = "100%";
-        return;
       }
 
-      if (!shouldLock && (isLocked || isBodyFixed)) {
-        const restoreY = actionSheetScrollY || Math.abs(parseInt(document.body.style.top || "0", 10)) || 0;
+      if (!shouldLock && isLocked) {
         document.body.classList.remove("action-sheet-open");
+      }
+
+      // 防止舊版 position: fixed 鎖頁面殘留，正常版本不再用 fixed 鎖背景，避免取消選單時畫面跳動
+      if (wasFixed) {
         document.body.style.position = "";
         document.body.style.top = "";
         document.body.style.left = "";
         document.body.style.right = "";
         document.body.style.width = "";
-        window.scrollTo(0, restoreY);
+        window.requestAnimationFrame(() => window.scrollTo(0, fixedRestoreY));
       }
     }
 
@@ -6627,7 +6659,7 @@
             const item = state.expenses.find((expense) => expense.id === (element.dataset.expenseId || state.quickExpenseActionId));
             if (!item) return;
             state.quickExpenseActionId = "";
-            const text = `${item.date || ""}｜${item.title}｜${formatMoney(item.amount, item.currency)}｜算 ${item.owner || item.payer || ""}｜${item.paidBy || item.payer || ""}付款`;
+            const text = buildExpenseCopyText(item);
             copyTextToClipboard(text, "花費內容已複製");
             render();
           });
