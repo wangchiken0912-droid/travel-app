@@ -2859,26 +2859,6 @@
       margin-top: 12px;
     }
 
-    .expense-inline-actions {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      margin-top: 8px;
-    }
-
-    .edit-expense-inline,
-    .delete-expense-btn {
-      border: 0;
-      background: transparent;
-      padding: 0;
-      font-size: 11px;
-      font-weight: 900;
-    }
-
-    .edit-expense-inline {
-      color: var(--primary-dark);
-    }
-
     .action-sheet-backdrop {
       position: fixed;
       inset: 0;
@@ -2897,6 +2877,21 @@
       background: #fff;
       padding: 12px;
       box-shadow: 0 24px 60px rgba(15,23,42,0.18);
+    }
+
+
+    /* Bloom fix: 快速操作浮層本身也禁止長按選字，避免 iPhone 跳出複製／查詢工具列 */
+    .action-sheet,
+    .action-sheet * {
+      -webkit-user-select: none !important;
+      user-select: none !important;
+      -webkit-touch-callout: none !important;
+      -webkit-user-drag: none !important;
+    }
+
+    .action-sheet-btn {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
 
     .action-sheet-title {
@@ -3561,6 +3556,27 @@
       .today-title {
         font-size: 15px !important;
       }
+    }
+
+
+    /* Bloom fix: 今日頁長按防選字加強 + 黑字按鈕維持小字體 */
+    .today-item[data-longpress-stop-id],
+    .today-item[data-longpress-stop-id] *,
+    .timeline-item[data-longpress-stop-id],
+    .timeline-item[data-longpress-stop-id] * {
+      -webkit-user-select: none !important;
+      user-select: none !important;
+      -webkit-touch-callout: none !important;
+      -webkit-user-drag: none !important;
+    }
+
+    .dark-text-btn,
+    .expense-form-visual > .dark-text-btn,
+    .expense-settings-body .dark-text-btn {
+      color: #1F1F1F !important;
+      font-size: 12px !important;
+      font-weight: 900 !important;
+      line-height: 1.2 !important;
     }
 
   </style>
@@ -5929,10 +5945,6 @@
                         ${!item.splitType || item.splitType === "self" ? `<span class="expense-pill-simple">個人花費</span>` : ""}
                         ${item.note ? `<span class="expense-pill-simple">${escapeHtml(item.note)}</span>` : ""}
                       </div>
-                      <div class="expense-inline-actions">
-                        <button class="edit-expense-inline" data-action="start-edit-expense" data-expense-id="${attr(item.id)}" type="button">編輯</button>
-                        <button class="delete-expense-btn" data-action="delete-expense" data-expense-id="${attr(item.id)}" type="button">刪除</button>
-                      </div>
                     </div>
                     <div class="expense-record-amount-simple">
                       ${escapeHtml(formatMoney(item.amount, item.currency))}
@@ -7028,14 +7040,14 @@
 
       document.addEventListener("contextmenu", (event) => {
         if (event.target.closest(".detail-hero, .detail-body")) return;
-        if (event.target.closest("[data-longpress-stop-id], [data-longpress-favorite-id], [data-longpress-expense-id]")) {
+        if (event.target.closest(".action-sheet, [data-longpress-stop-id], [data-longpress-favorite-id], [data-longpress-expense-id]")) {
           event.preventDefault();
         }
       });
 
       document.addEventListener("selectstart", (event) => {
         if (event.target.closest(".detail-hero, .detail-body")) return;
-        if (event.target.closest("[data-longpress-stop-id], [data-longpress-favorite-id], [data-longpress-expense-id]")) {
+        if (event.target.closest(".action-sheet, [data-longpress-stop-id], [data-longpress-favorite-id], [data-longpress-expense-id]")) {
           event.preventDefault();
         }
       });
