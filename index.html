@@ -1727,6 +1727,45 @@
       color: #fff;
     }
 
+    .expense-filter-rail {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      margin: -2px 0 10px;
+      padding: 0 0 2px;
+      scrollbar-width: none;
+    }
+
+    .expense-filter-rail::-webkit-scrollbar {
+      display: none;
+    }
+
+    .expense-filter-chip {
+      flex: 0 0 auto;
+      min-height: 29px;
+      border: 1px solid var(--line-soft);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      padding: 0 11px;
+      font-size: 11.5px;
+      font-weight: 900;
+    }
+
+    .expense-filter-chip.active {
+      border-color: rgba(47,128,237,0.16);
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+    }
+
+    .expense-record-list-simple {
+      border-top: 0 !important;
+    }
+
+    .expense-record-row-simple:first-child {
+      padding-top: 6px;
+    }
+
     .expense-stat-list,
     .person-stat-list,
     .expense-record-list-simple {
@@ -2219,6 +2258,45 @@
       border-color: var(--primary);
       background: var(--primary);
       color: #fff;
+    }
+
+    .expense-filter-rail {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      margin: -2px 0 10px;
+      padding: 0 0 2px;
+      scrollbar-width: none;
+    }
+
+    .expense-filter-rail::-webkit-scrollbar {
+      display: none;
+    }
+
+    .expense-filter-chip {
+      flex: 0 0 auto;
+      min-height: 29px;
+      border: 1px solid var(--line-soft);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      padding: 0 11px;
+      font-size: 11.5px;
+      font-weight: 900;
+    }
+
+    .expense-filter-chip.active {
+      border-color: rgba(47,128,237,0.16);
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+    }
+
+    .expense-record-list-simple {
+      border-top: 0 !important;
+    }
+
+    .expense-record-row-simple:first-child {
+      padding-top: 6px;
     }
 
     .expense-stat-list,
@@ -2733,6 +2811,110 @@
 
     .split-custom-panel {
       display: none;
+    }
+
+    .expense-edit-panel {
+      border: 1px solid rgba(47,128,237,0.12);
+      border-radius: 22px;
+      background: #fff;
+      padding: 14px;
+      box-shadow: 0 12px 28px rgba(16,24,40,0.055);
+    }
+
+    .expense-edit-panel .expense-panel-head {
+      margin-bottom: 12px;
+    }
+
+    .expense-edit-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-top: 12px;
+    }
+
+    .expense-inline-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .edit-expense-inline,
+    .delete-expense-btn {
+      border: 0;
+      background: transparent;
+      padding: 0;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .edit-expense-inline {
+      color: var(--primary-dark);
+    }
+
+    .action-sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 160;
+      display: grid;
+      align-items: end;
+      background: rgba(15,23,42,0.18);
+      padding: 18px;
+    }
+
+    .action-sheet {
+      width: min(100%, 430px);
+      margin: 0 auto calc(72px + var(--safe-bottom));
+      border: 1px solid var(--line-soft);
+      border-radius: 24px;
+      background: #fff;
+      padding: 12px;
+      box-shadow: 0 24px 60px rgba(15,23,42,0.18);
+    }
+
+    .action-sheet-title {
+      padding: 4px 6px 10px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 950;
+      line-height: 1.35;
+    }
+
+    .action-sheet-sub {
+      margin-top: 3px;
+      color: var(--light);
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .action-sheet-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .action-sheet-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 44px;
+      border: 1px solid var(--line-soft);
+      border-radius: 16px;
+      background: #fff;
+      color: var(--text);
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 900;
+      text-align: left;
+    }
+
+    .action-sheet-btn.primary {
+      border-color: rgba(47,128,237,0.16);
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+    }
+
+    .action-sheet-btn.danger {
+      color: var(--danger);
     }
 
     .expense-form-visual:has(input[name="splitType"][value="custom"]:checked) .split-custom-panel {
@@ -3411,6 +3593,11 @@
       travelers: getStoredTravelers(),
       moneyScope: "trip",
       expenseOwnerFilter: "all",
+      expenseEditingId: "",
+      expenseEditingMode: "",
+      expenseEditChoiceId: "",
+      quickStopActionId: "",
+      longPressIgnoreClickUntil: 0,
       moneySettingsOpen: false,
       fxAutoChecked: false,
       loading: true,
@@ -3655,7 +3842,7 @@
     function getScopedExpenses() {
       const list = Array.isArray(state.expenses) ? state.expenses : [];
       const sorted = [...list].sort((a, b) => `${b.date}_${b.createdAt}`.localeCompare(`${a.date}_${a.createdAt}`));
-      if (state.moneyScope === "day") return sorted.filter((item) => item.date === state.selectedDate);
+      if (state.moneyScope === "day") return sorted.filter((item) => item.date === todayISO());
       return sorted;
     }
 
@@ -3707,7 +3894,7 @@
       const scoped = getScopedExpenses();
       const totals = sumExpenses(scoped);
       const travelerStats = getTravelerExpenseStats(scoped);
-      const scopeText = state.moneyScope === "day" ? formatLongDate(state.selectedDate) : "全旅程";
+      const scopeText = state.moneyScope === "day" ? `今日 ${formatLongDate(todayISO())}` : "全旅程";
       const lines = [];
       lines.push(`花費紀錄｜${scopeText}`);
       lines.push(`匯率：1 日幣 = ${state.fxRate} 台幣`);
@@ -4350,7 +4537,7 @@
       const notice = stop.notice ? `<div class="timeline-note warning">${escapeHtml(stop.notice)}</div>` : "";
 
       return `
-        <article class="timeline-item" data-action="open-stop" data-stop-id="${attr(id)}" tabindex="0" role="button" aria-label="查看 ${attr(stop.title)} 詳情">
+        <article class="timeline-item" data-action="open-stop" data-stop-id="${attr(id)}" data-longpress-stop-id="${attr(id)}" tabindex="0" role="button" aria-label="查看 ${attr(stop.title)} 詳情">
           <div class="timeline-time">
             <strong>${escapeHtml(time)}</strong>
             ${endTime ? `<span>${escapeHtml(endTime)}</span>` : ""}
@@ -4383,7 +4570,7 @@
       const notice = stop.notice ? `<div class="today-alert">${escapeHtml(stop.notice)}</div>` : "";
 
       return `
-        <article class="today-item" data-action="open-stop" data-stop-id="${attr(id)}" tabindex="0" role="button" aria-label="查看 ${attr(stop.title)} 詳情">
+        <article class="today-item" data-action="open-stop" data-stop-id="${attr(id)}" data-longpress-stop-id="${attr(id)}" tabindex="0" role="button" aria-label="查看 ${attr(stop.title)} 詳情">
           ${thumbnailHtml(stop)}
           <div class="today-body">
             <h3 class="today-title">${escapeHtml(stop.title)}</h3>
@@ -5168,6 +5355,208 @@
     }
 
 
+
+    function getExpenseGroupItems(item) {
+      if (!item || !item.groupId) return item ? [item] : [];
+      return state.expenses.filter((expense) => expense.groupId === item.groupId);
+    }
+
+    function createExpenseRowsFromExpenseForm(data, formData, options = {}) {
+      const amount = normalizeMoneyAmount(data.amount);
+      if (!amount) return [];
+
+      const splitType = ["self", "all", "custom"].includes(data.splitType) ? data.splitType : "self";
+      const paidBy = normalizePayerName(data.paidBy || data.payer || state.travelers[0] || FIXED_TRAVELERS[0]);
+      const customSplitWith = formData.getAll("splitWith").map(normalizePayerName).filter(Boolean);
+      const owners = splitType === "all"
+        ? [...state.travelers]
+        : splitType === "custom"
+          ? customSplitWith
+          : [normalizePayerName(data.owner || paidBy)];
+      const safeOwners = [...new Set(owners.length ? owners : [paidBy])];
+      const groupId = splitType === "self" ? null : (options.groupId || `expense_group_${Date.now()}_${Math.random().toString(16).slice(2)}`);
+      const totalAmount = Math.round(amount);
+      const baseShare = Math.floor(totalAmount / safeOwners.length);
+      const remainder = totalAmount % safeOwners.length;
+      const title = String(data.title || "").trim() || "未命名花費";
+      const currency = data.currency === "TWD" ? "TWD" : "JPY";
+      const createdAt = options.createdAt || new Date().toISOString();
+
+      return safeOwners.map((owner, index) => {
+        const shareAmount = baseShare + (index < remainder ? 1 : 0);
+        return {
+          id: `expense_${Date.now()}_${index}_${Math.random().toString(16).slice(2)}`,
+          groupId,
+          groupSize: safeOwners.length,
+          date: data.date || todayISO(),
+          title,
+          amount: shareAmount,
+          originalAmount: totalAmount,
+          currency,
+          paidBy,
+          owner,
+          payer: owner,
+          category: data.category || "其他",
+          payment: data.payment === "刷卡" ? "刷卡" : "現金",
+          note: String(data.note || "").trim(),
+          splitType,
+          splitWith: safeOwners,
+          createdAt
+        };
+      });
+    }
+
+    function expenseEditChoiceSheetHtml() {
+      if (!state.expenseEditChoiceId) return "";
+      const item = state.expenses.find((expense) => expense.id === state.expenseEditChoiceId);
+      if (!item) return "";
+      return `
+        <div class="action-sheet-backdrop" data-action="cancel-expense-edit-choice">
+          <section class="action-sheet" onclick="event.stopPropagation()">
+            <div class="action-sheet-title">
+              這筆是共同花費的一部分
+              <div class="action-sheet-sub">${escapeHtml(item.title)}｜你要只改這一筆，還是整組一起調整？</div>
+            </div>
+            <div class="action-sheet-grid">
+              <button class="action-sheet-btn" data-action="choose-expense-edit" data-edit-mode="single" data-expense-id="${attr(item.id)}" type="button">只編輯這一筆 <span>›</span></button>
+              <button class="action-sheet-btn primary" data-action="choose-expense-edit" data-edit-mode="group" data-expense-id="${attr(item.id)}" type="button">編輯整組花費 <span>›</span></button>
+              <button class="action-sheet-btn" data-action="cancel-expense-edit-choice" type="button">取消</button>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    function expenseEditPanelHtml() {
+      if (!state.expenseEditingId || !state.expenseEditingMode) return "";
+      const item = state.expenses.find((expense) => expense.id === state.expenseEditingId);
+      if (!item) return "";
+      const mode = state.expenseEditingMode === "group" && item.groupId ? "group" : "single";
+      const groupItems = mode === "group" ? getExpenseGroupItems(item) : [item];
+      const title = mode === "group" ? "編輯整組花費" : "編輯這一筆花費";
+      const sub = mode === "group" ? "會刪掉同組紀錄後重新依分攤方式拆分" : "只修改目前這一筆，不影響同組其他人";
+      const totalAmount = mode === "group"
+        ? groupItems.reduce((sum, expense) => sum + Number(expense.amount || 0), 0)
+        : Number(item.amount || 0);
+      const paidBy = item.paidBy || item.payer || state.travelers[0];
+      const owner = item.owner || item.payer || paidBy;
+      const splitType = mode === "group" ? (item.splitType || "all") : "self";
+      const selectedOwners = mode === "group"
+        ? groupItems.map((expense) => expense.owner || expense.payer).filter(Boolean)
+        : [owner];
+      const categories = ["餐飲", "交通", "購物", "門票", "住宿", "伴手禮", "其他"];
+
+      return `
+        <section class="section expense-edit-panel" id="expense-edit-panel">
+          <div class="expense-panel-head">
+            <div>
+              <h2 class="expense-panel-title">${escapeHtml(title)}</h2>
+              <div class="expense-panel-sub">${escapeHtml(sub)}</div>
+            </div>
+          </div>
+          <form class="form-grid-full" data-action="save-expense-edit">
+            <input type="hidden" name="editingId" value="${attr(item.id)}">
+            <input type="hidden" name="editingMode" value="${attr(mode)}">
+            <label class="form-label">金額${mode === "group" ? "（整組總額）" : ""}
+              <input class="form-field" name="amount" inputmode="decimal" value="${attr(totalAmount)}" required>
+            </label>
+            <div class="visual-choice-row">
+              <label class="visual-choice"><input type="radio" name="currency" value="JPY" ${item.currency !== "TWD" ? "checked" : ""}><span>JPY 日幣</span></label>
+              <label class="visual-choice"><input type="radio" name="currency" value="TWD" ${item.currency === "TWD" ? "checked" : ""}><span>TWD 台幣</span></label>
+            </div>
+            <section class="visual-block">
+              <div class="visual-label">付款人</div>
+              <div class="visual-choice-row">
+                ${state.travelers.map((name) => `
+                  <label class="visual-choice"><input type="radio" name="paidBy" value="${attr(name)}" ${paidBy === name ? "checked" : ""}><span>${escapeHtml(name)}</span></label>
+                `).join("")}
+              </div>
+            </section>
+            ${mode === "single" ? `
+              <section class="visual-block">
+                <div class="visual-label">算誰的花費</div>
+                <div class="visual-choice-row">
+                  ${state.travelers.map((name) => `
+                    <label class="visual-choice"><input type="radio" name="owner" value="${attr(name)}" ${owner === name ? "checked" : ""}><span>${escapeHtml(name)}</span></label>
+                  `).join("")}
+                </div>
+              </section>
+              <input type="hidden" name="splitType" value="self">
+            ` : `
+              <section class="visual-block">
+                <div class="visual-label">分攤方式</div>
+                <div class="visual-choice-row">
+                  <label class="visual-choice"><input type="radio" name="splitType" value="all" ${splitType === "all" ? "checked" : ""}><span>全員平分</span></label>
+                  <label class="visual-choice"><input type="radio" name="splitType" value="custom" ${splitType === "custom" ? "checked" : ""}><span>自訂分攤</span></label>
+                </div>
+              </section>
+              <section class="visual-block split-custom-panel">
+                <div class="visual-label">自訂分攤對象</div>
+                <div class="visual-choice-row">
+                  ${state.travelers.map((name) => `
+                    <label class="visual-choice"><input type="checkbox" name="splitWith" value="${attr(name)}" ${selectedOwners.includes(name) ? "checked" : ""}><span>${escapeHtml(name)}</span></label>
+                  `).join("")}
+                </div>
+                <div class="visual-cash-hint">如果選自訂分攤，至少保留一位分攤者</div>
+              </section>
+            `}
+            <section class="visual-secondary-fields">
+              <label class="form-label">日期
+                <input class="form-field" name="date" type="date" value="${attr(item.date || todayISO())}" required>
+              </label>
+              <label class="form-label">店家 / 項目
+                <input class="form-field" name="title" value="${attr(item.title)}" required>
+              </label>
+            </section>
+            <section class="visual-secondary-fields">
+              <label class="form-label">分類
+                <select class="form-select" name="category">
+                  ${categories.map((cat) => `<option value="${attr(cat)}" ${item.category === cat ? "selected" : ""}>${escapeHtml(cat)}</option>`).join("")}
+                </select>
+              </label>
+              <label class="form-label">付款方式
+                <select class="form-select" name="payment">
+                  <option value="現金" ${item.payment === "現金" ? "selected" : ""}>現金</option>
+                  <option value="刷卡" ${item.payment === "刷卡" ? "selected" : ""}>刷卡</option>
+                </select>
+              </label>
+            </section>
+            <label class="form-label">備註
+              <input class="form-field" name="note" value="${attr(item.note || "")}" placeholder="可空白">
+            </label>
+            <div class="expense-edit-actions">
+              <button class="secondary-btn" data-action="cancel-expense-edit" type="button">取消</button>
+              <button class="primary-btn" type="submit">儲存修改</button>
+            </div>
+          </form>
+        </section>
+      `;
+    }
+
+    function quickStopActionSheetHtml() {
+      if (!state.quickStopActionId) return "";
+      const stop = findStopById(state.quickStopActionId);
+      if (!stop) return "";
+      return `
+        <div class="action-sheet-backdrop" data-action="close-quick-stop-menu">
+          <section class="action-sheet" onclick="event.stopPropagation()">
+            <div class="action-sheet-title">
+              ${escapeHtml(stop.title)}
+              <div class="action-sheet-sub">快速操作</div>
+            </div>
+            <div class="action-sheet-grid">
+              <button class="action-sheet-btn primary" data-action="quick-edit-stop" data-stop-id="${attr(stopId(stop))}" type="button">編輯行程 <span>›</span></button>
+              <button class="action-sheet-btn" data-action="quick-copy-stop-address" data-stop-id="${attr(stopId(stop))}" type="button">複製地址 <span>›</span></button>
+              <a class="action-sheet-btn" href="${attr(buildMapsSearchUrl(stop))}" target="_blank" rel="noreferrer">查看地點 <span>›</span></a>
+              <a class="action-sheet-btn" href="${attr(buildCurrentLocationDirectionsUrl(stop))}" target="_blank" rel="noreferrer">現在前往 <span>›</span></a>
+              <button class="action-sheet-btn danger" data-action="quick-delete-stop" data-stop-id="${attr(stopId(stop))}" type="button">刪除行程 <span>›</span></button>
+              <button class="action-sheet-btn" data-action="close-quick-stop-menu" type="button">取消</button>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
     function moneyPageHtml() {
       const scopedExpenses = getScopedExpenses();
       const visibleExpenses = (state.expenseOwnerFilter || "all") === "all"
@@ -5175,7 +5564,7 @@
         : scopedExpenses.filter((item) => (item.owner || item.payer) === state.expenseOwnerFilter);
       const travelerStats = getTravelerExpenseStats(scopedExpenses);
       const defaultDate = todayISO();
-      const scopeLabel = state.moneyScope === "day" ? "當日" : "全旅程";
+      const scopeLabel = state.moneyScope === "day" ? "今日" : "全旅程";
       const categories = [["餐飲", "食"], ["交通", "移"], ["購物", "買"], ["門票", "票"], ["住宿", "宿"], ["伴手禮", "禮"], ["其他", "其"]];
 
       return `
@@ -5293,16 +5682,19 @@
             </form>
           </section>
 
+          ${expenseEditPanelHtml()}
+          ${expenseEditChoiceSheetHtml()}
+
           <section class="section expense-simple-panel">
             <div class="expense-panel-head">
               <div>
                 <h2 class="expense-panel-title">每個人已花費</h2>
-                <div class="expense-panel-sub">${escapeHtml(scopeLabel)}｜日幣現金剩餘只扣本人 JPY 現金消費</div>
+                <div class="expense-panel-sub">${escapeHtml(scopeLabel)}｜日幣現金剩餘只扣實際付款人的 JPY 現金消費</div>
               </div>
             </div>
             <div class="expense-mini-tabs">
               <button class="expense-mini-tab ${state.moneyScope === "trip" ? "active" : ""}" data-action="set-money-scope" data-scope="trip" type="button">全旅程</button>
-              <button class="expense-mini-tab ${state.moneyScope === "day" ? "active" : ""}" data-action="set-money-scope" data-scope="day" type="button">當日</button>
+              <button class="expense-mini-tab ${state.moneyScope === "day" ? "active" : ""}" data-action="set-money-scope" data-scope="day" type="button">今日</button>
             </div>
             <div class="person-stat-list">
               ${travelerStats.map((person) => `
@@ -5321,14 +5713,14 @@
             <div class="expense-panel-head">
               <div>
                 <h2 class="expense-panel-title">花費紀錄</h2>
-                <div class="expense-panel-sub">${escapeHtml(String(visibleExpenses.length))} 筆｜${escapeHtml(scopeLabel)}</div>
+                <div class="expense-panel-sub">${escapeHtml(String(visibleExpenses.length))} 筆｜${escapeHtml(scopeLabel)}｜可依人篩選</div>
               </div>
               <button class="mini-action" data-action="export-expense-summary" type="button">匯出</button>
             </div>
-            <div class="expense-mini-tabs">
-              <button class="expense-mini-tab ${(state.expenseOwnerFilter || "all") === "all" ? "active" : ""}" data-action="set-expense-owner-filter" data-owner="all" type="button">全部</button>
+            <div class="expense-filter-rail">
+              <button class="expense-filter-chip ${(state.expenseOwnerFilter || "all") === "all" ? "active" : ""}" data-action="set-expense-owner-filter" data-owner="all" type="button">全部</button>
               ${state.travelers.map((name) => `
-                <button class="expense-mini-tab ${(state.expenseOwnerFilter || "all") === name ? "active" : ""}" data-action="set-expense-owner-filter" data-owner="${attr(name)}" type="button">${escapeHtml(name)}</button>
+                <button class="expense-filter-chip ${(state.expenseOwnerFilter || "all") === name ? "active" : ""}" data-action="set-expense-owner-filter" data-owner="${attr(name)}" type="button">${escapeHtml(name)}</button>
               `).join("")}
             </div>
             ${visibleExpenses.length ? `
@@ -5348,7 +5740,10 @@
                         ${!item.splitType || item.splitType === "self" ? `<span class="expense-pill-simple">個人花費</span>` : ""}
                         ${item.note ? `<span class="expense-pill-simple">${escapeHtml(item.note)}</span>` : ""}
                       </div>
-                      <button class="delete-expense-btn" data-action="delete-expense" data-expense-id="${attr(item.id)}" type="button">刪除</button>
+                      <div class="expense-inline-actions">
+                        <button class="edit-expense-inline" data-action="start-edit-expense" data-expense-id="${attr(item.id)}" type="button">編輯</button>
+                        <button class="delete-expense-btn" data-action="delete-expense" data-expense-id="${attr(item.id)}" type="button">刪除</button>
+                      </div>
                     </div>
                     <div class="expense-record-amount-simple">
                       ${escapeHtml(formatMoney(item.amount, item.currency))}
@@ -5669,7 +6064,7 @@
       if (state.screen === "favorite-detail") html = favoritePlaceDetailPageHtml();
       if (state.screen === "form") html = formPageHtml();
 
-      app.innerHTML = html + (["detail", "favorite-detail", "form"].includes(state.screen) ? "" : bottomNavHtml());
+      app.innerHTML = html + quickStopActionSheetHtml() + (["detail", "favorite-detail", "form"].includes(state.screen) ? "" : bottomNavHtml());
       bindEvents();
       setupSwipeBack();
     }
@@ -5852,6 +6247,7 @@
 
         if (action === "open-stop") {
           element.addEventListener("click", () => {
+            if (Date.now() < Number(state.longPressIgnoreClickUntil || 0)) return;
             state.previousScreen = state.screen === "detail" ? state.previousScreen : state.screen;
             state.selectedStopId = element.dataset.stopId || "";
             state.selectedFavoriteId = "";
@@ -5869,6 +6265,45 @@
             state.screen = "favorite-detail";
             render();
             window.scrollTo({ top: 0, behavior: "smooth" });
+          });
+        }
+
+
+        if (action === "close-quick-stop-menu") {
+          element.addEventListener("click", () => {
+            state.quickStopActionId = "";
+            render();
+          });
+        }
+
+        if (action === "quick-edit-stop") {
+          element.addEventListener("click", () => {
+            if (!requireEditMode()) return;
+            const id = element.dataset.stopId || state.quickStopActionId;
+            state.quickStopActionId = "";
+            openForm("edit", "行程", id);
+          });
+        }
+
+        if (action === "quick-copy-stop-address") {
+          element.addEventListener("click", () => {
+            const stop = findStopById(element.dataset.stopId || state.quickStopActionId);
+            if (!stop) return;
+            state.quickStopActionId = "";
+            copyTextToClipboard(stop.address || stop.title || "", "地址已複製");
+            render();
+          });
+        }
+
+        if (action === "quick-delete-stop") {
+          element.addEventListener("click", () => {
+            if (!requireEditMode()) return;
+            const stop = findStopById(element.dataset.stopId || state.quickStopActionId);
+            if (!stop) return;
+            const ok = confirm(`確定要刪除這筆行程？\n\n${stop.date || ""} ${stop.time || ""}\n${stop.title}\n\n刪除後會從 Google Sheet 移除。`);
+            if (!ok) return;
+            state.quickStopActionId = "";
+            sendWrite("delete", { id: stopId(stop), type: "行程", title: stop.title });
           });
         }
 
@@ -6021,7 +6456,11 @@
               }))
             };
             state.travelers = [...FIXED_TRAVELERS];
-            state.expenses = state.expenses.map((expense) => ({ ...expense, payer: normalizePayerName(expense.payer) }));
+            state.expenses = state.expenses.map((expense) => {
+              const owner = normalizePayerName(expense.owner || expense.payer);
+              const paidBy = normalizePayerName(expense.paidBy || expense.payer);
+              return { ...expense, owner, paidBy, payer: owner };
+            });
 
             state.fxUpdatedAt = new Date().toISOString();
             saveFxRate();
@@ -6063,6 +6502,111 @@
           });
         }
 
+
+        if (action === "start-edit-expense") {
+          element.addEventListener("click", () => {
+            const id = element.dataset.expenseId || "";
+            const item = state.expenses.find((expense) => expense.id === id);
+            if (!item) return;
+            if (item.groupId) {
+              state.expenseEditChoiceId = id;
+              state.expenseEditingId = "";
+              state.expenseEditingMode = "";
+            } else {
+              state.expenseEditingId = id;
+              state.expenseEditingMode = "single";
+              state.expenseEditChoiceId = "";
+            }
+            render();
+            setTimeout(() => document.getElementById("expense-edit-panel")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+          });
+        }
+
+        if (action === "choose-expense-edit") {
+          element.addEventListener("click", () => {
+            state.expenseEditingId = element.dataset.expenseId || state.expenseEditChoiceId || "";
+            state.expenseEditingMode = element.dataset.editMode === "group" ? "group" : "single";
+            state.expenseEditChoiceId = "";
+            render();
+            setTimeout(() => document.getElementById("expense-edit-panel")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+          });
+        }
+
+        if (action === "cancel-expense-edit-choice") {
+          element.addEventListener("click", () => {
+            state.expenseEditChoiceId = "";
+            render();
+          });
+        }
+
+        if (action === "cancel-expense-edit") {
+          element.addEventListener("click", () => {
+            state.expenseEditingId = "";
+            state.expenseEditingMode = "";
+            render();
+          });
+        }
+
+        if (action === "save-expense-edit") {
+          element.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const formData = new FormData(event.currentTarget);
+            const data = Object.fromEntries(formData.entries());
+            const amount = normalizeMoneyAmount(data.amount);
+            if (!amount) {
+              state.message = "金額格式不正確";
+              render();
+              return;
+            }
+
+            const id = data.editingId || state.expenseEditingId;
+            const mode = data.editingMode === "group" ? "group" : "single";
+            const item = state.expenses.find((expense) => expense.id === id);
+            if (!item) return;
+
+            if (mode === "group" && item.groupId) {
+              const newGroupItems = createExpenseRowsFromExpenseForm(data, formData, { groupId: item.groupId, createdAt: new Date().toISOString() });
+              if (!newGroupItems.length) {
+                state.message = "整組花費資料不完整";
+                render();
+                return;
+              }
+              state.expenses = [
+                ...newGroupItems,
+                ...state.expenses.filter((expense) => expense.groupId !== item.groupId)
+              ];
+              state.message = `已更新整組花費，共 ${newGroupItems.length} 筆`;
+            } else {
+              const owner = normalizePayerName(data.owner || item.owner || item.payer);
+              const paidBy = normalizePayerName(data.paidBy || item.paidBy || item.payer);
+              state.expenses = state.expenses.map((expense) => {
+                if (expense.id !== id) return expense;
+                return {
+                  ...expense,
+                  date: data.date || todayISO(),
+                  title: String(data.title || "").trim() || "未命名花費",
+                  amount: Math.round(amount),
+                  originalAmount: expense.groupId ? expense.originalAmount : Math.round(amount),
+                  currency: data.currency === "TWD" ? "TWD" : "JPY",
+                  paidBy,
+                  owner,
+                  payer: owner,
+                  category: data.category || "其他",
+                  payment: data.payment === "刷卡" ? "刷卡" : "現金",
+                  note: String(data.note || "").trim()
+                };
+              });
+              state.message = "已更新這筆花費";
+            }
+
+            state.expenseEditingId = "";
+            state.expenseEditingMode = "";
+            state.expenseEditChoiceId = "";
+            saveExpenses();
+            render();
+          });
+        }
+
         if (action === "add-expense") {
           element.addEventListener("submit", (event) => {
             event.preventDefault();
@@ -6075,45 +6619,12 @@
               return;
             }
 
-            const splitType = ["self", "all", "custom"].includes(data.splitType) ? data.splitType : "self";
-            const paidBy = normalizePayerName(data.payer || state.travelers[0] || FIXED_TRAVELERS[0]);
-            const customSplitWith = formData.getAll("splitWith").map(normalizePayerName).filter(Boolean);
-            const owners = splitType === "all"
-              ? [...state.travelers]
-              : splitType === "custom"
-                ? customSplitWith
-                : [paidBy];
-            const safeOwners = [...new Set(owners.length ? owners : [paidBy])];
-            const groupId = `expense_group_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-            const totalAmount = Math.round(amount);
-            const baseShare = Math.floor(totalAmount / safeOwners.length);
-            const remainder = totalAmount % safeOwners.length;
-            const title = String(data.title || "").trim() || "未命名花費";
-            const currency = data.currency === "TWD" ? "TWD" : "JPY";
-            const createdAt = new Date().toISOString();
-
-            const newExpenses = safeOwners.map((owner, index) => {
-              const shareAmount = baseShare + (index < remainder ? 1 : 0);
-              return {
-                id: `expense_${Date.now()}_${index}_${Math.random().toString(16).slice(2)}`,
-                groupId: splitType === "self" ? null : groupId,
-                groupSize: safeOwners.length,
-                date: data.date || todayISO(),
-                title,
-                amount: shareAmount,
-                originalAmount: totalAmount,
-                currency,
-                paidBy,
-                owner,
-                payer: owner,
-                category: data.category || "其他",
-                payment: data.payment === "刷卡" ? "刷卡" : "現金",
-                note: String(data.note || "").trim(),
-                splitType,
-                splitWith: safeOwners,
-                createdAt
-              };
-            });
+            const newExpenses = createExpenseRowsFromExpenseForm(data, formData);
+            if (!newExpenses.length) {
+              state.message = "花費資料不完整";
+              render();
+              return;
+            }
 
             state.expenses = [...newExpenses, ...state.expenses];
             saveExpenses();
@@ -6146,6 +6657,33 @@
           element.addEventListener("click", () => goBackFromInnerScreen());
         }
 
+      });
+
+
+      app.querySelectorAll("[data-longpress-stop-id]").forEach((element) => {
+        let timer = null;
+        let moved = false;
+        const clear = () => {
+          if (timer) window.clearTimeout(timer);
+          timer = null;
+        };
+        const start = () => {
+          moved = false;
+          clear();
+          timer = window.setTimeout(() => {
+            if (moved) return;
+            state.quickStopActionId = element.dataset.longpressStopId || "";
+            state.longPressIgnoreClickUntil = Date.now() + 900;
+            render();
+          }, 560);
+        };
+        element.addEventListener("touchstart", start, { passive: true });
+        element.addEventListener("mousedown", start);
+        element.addEventListener("touchmove", () => { moved = true; clear(); }, { passive: true });
+        element.addEventListener("mousemove", () => { moved = true; clear(); });
+        element.addEventListener("touchend", clear, { passive: true });
+        element.addEventListener("mouseup", clear);
+        element.addEventListener("mouseleave", clear);
       });
 
       app.querySelectorAll(".expense-settings-pop").forEach((details) => {
@@ -6190,7 +6728,7 @@
         state.loading = false;
         ensureSelectedDate();
         render();
-        
+
         if (state.message === "已同步最新資料") {
           setTimeout(() => {
             if (state.message === "已同步最新資料") {
