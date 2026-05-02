@@ -420,6 +420,30 @@
       line-height: 1.55;
     }
 
+    .app-toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(86px + var(--safe-bottom));
+      z-index: 260;
+      transform: translateX(-50%);
+      max-width: min(88vw, 360px);
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      border-radius: 999px;
+      background: rgba(17, 24, 39, 0.92);
+      color: #fff;
+      padding: 9px 14px;
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1.35;
+      text-align: center;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+      pointer-events: none;
+    }
+
+    .app-toast.error {
+      background: rgba(185, 28, 28, 0.94);
+    }
+
     .date-rail {
       position: sticky;
       top: 75px;
@@ -3827,6 +3851,8 @@
       loading: true,
       message: "",
       syncStatus: "",
+      toastMessage: "",
+      toastVariant: "",
       editMode: localStorage.getItem(EDIT_MODE_KEY) === "ON",
       query: "",
       searchDraft: "",
@@ -3845,6 +3871,7 @@
     const app = document.getElementById("app");
     let messageClearTimer = null;
     let syncStatusClearTimer = null;
+    let toastClearTimer = null;
     let actionSheetScrollY = 0;
 
     function escapeHtml(value) {
@@ -5080,13 +5107,33 @@
     }
 
     function messageHtml() {
-      if (!state.message && !state.syncStatus) return "";
+      if (!state.message) return "";
       return `
         <div class="status-message">
-          ${state.message ? `<div>${escapeHtml(state.message)}</div>` : ""}
-          ${state.syncStatus ? `<div class="sync-hint">${escapeHtml(state.syncStatus)}</div>` : ""}
+          <div>${escapeHtml(state.message)}</div>
         </div>
       `;
+    }
+
+    function toastHtml() {
+      if (!state.toastMessage) return "";
+      return `<div class="app-toast ${state.toastVariant === "error" ? "error" : ""}">${escapeHtml(state.toastMessage)}</div>`;
+    }
+
+    function showToast(message, variant = "", duration = 1800) {
+      if (toastClearTimer) {
+        window.clearTimeout(toastClearTimer);
+        toastClearTimer = null;
+      }
+      state.toastMessage = message || "";
+      state.toastVariant = variant || "";
+      render();
+      if (!state.toastMessage) return;
+      toastClearTimer = window.setTimeout(() => {
+        state.toastMessage = "";
+        state.toastVariant = "";
+        render();
+      }, duration);
     }
 
     function scheduleMessageClear() {
@@ -5423,15 +5470,11 @@
 
       applyOptimisticChange("create", itineraryPayload);
       applyOptimisticChange("update", markedFavorite);
-
-      state.message = "已先加入本機行程";
-      state.syncStatus = "正在同步 Google Sheet，收藏已標記為已加入";
       returnAfterWrite(itineraryPayload);
       render();
 
       if (!isWriteReady()) {
-        state.syncStatus = "尚未設定 Google Apps Script 寫入端，本機暫存不會寫回 Google Sheet";
-        render();
+        showToast("同步失敗，稍後再試", "error", 2600);
         return;
       }
 
@@ -5450,14 +5493,10 @@
           body: JSON.stringify(actionPayload("update", normalizeWriteData(markedFavorite)))
         });
 
-        state.message = "已送出";
-        state.syncStatus = "等待 Google Sheet 發佈資料同步";
-        render();
+        showToast("已同步");
         window.setTimeout(() => loadRows(true), 2200);
       } catch (error) {
-        state.message = "同步失敗";
-        state.syncStatus = "已保留在本機暫存，請網路穩定後再試";
-        render();
+        showToast("同步失敗，稍後再試", "error", 2600);
       }
     }
 
@@ -5467,15 +5506,11 @@
       }
 
       applyOptimisticChange(action, data);
-
-      state.message = action === "delete" ? "已先從本機移除" : "已先在本機顯示";
-      state.syncStatus = "正在同步 Google Sheet";
       returnAfterWrite(data);
       render();
 
       if (!isWriteReady()) {
-        state.syncStatus = "尚未設定 Google Apps Script 寫入端，本機暫存不會寫回 Google Sheet";
-        render();
+        showToast("同步失敗，稍後再試", "error", 2600);
         return;
       }
 
@@ -5489,15 +5524,10 @@
           body: JSON.stringify(payload)
         });
 
-        state.message = "已送出";
-        state.syncStatus = "等待 Google Sheet 發佈資料同步";
-        render();
-
+        showToast(action === "delete" ? "已刪除" : "已同步");
         window.setTimeout(() => loadRows(true), 2200);
       } catch (error) {
-        state.message = "同步失敗";
-        state.syncStatus = "已保留在本機暫存，請網路穩定後再試";
-        render();
+        showToast("同步失敗，稍後再試", "error", 2600);
       }
     }
 
@@ -5515,16 +5545,12 @@
       });
     }
 
-    async function syncExpenseChanges(changes, successMessage = "花費已同步到 Google Sheet") {
+    async function syncExpenseChanges(changes, successMessage = "已同步") {
       if (!Array.isArray(changes) || !changes.length) return;
       if (!isWriteReady()) {
-        state.syncStatus = "尚未設定 Google Apps Script 寫入端，花費暫存在本機";
-        render();
+        showToast("同步失敗，稍後再試", "error", 2600);
         return;
       }
-
-      state.syncStatus = "正在同步花費到 Google Sheet";
-      render();
 
       try {
         for (const change of changes) {
@@ -5535,19 +5561,10 @@
           }
         }
 
-        state.syncStatus = successMessage;
-        render();
-        if (syncStatusClearTimer) window.clearTimeout(syncStatusClearTimer);
-        syncStatusClearTimer = window.setTimeout(() => {
-          if (state.syncStatus === successMessage) {
-            state.syncStatus = "";
-            render();
-          }
-        }, 1800);
+        showToast(successMessage || "已同步");
         window.setTimeout(() => loadRows(true), 2200);
       } catch (error) {
-        state.syncStatus = "花費同步失敗，已先保留在本機，請網路穩定後再試";
-        render();
+        showToast("同步失敗，稍後再試", "error", 2600);
       }
     }
 
@@ -6140,7 +6157,7 @@
             <div class="expense-entry-head">
               <div>
                 <h2 class="expense-entry-title">新增花費</h2>
-                <div class="expense-entry-sub">白底保留大阪都會感，記帳速度優先</div>
+                
               </div>
               <details class="expense-settings-pop" ${state.moneySettingsOpen ? "open" : ""}>
                 <summary class="expense-settings-summary">設定</summary>
@@ -6419,12 +6436,6 @@
         <div class="page content">
           ${messageHtml()}
           <section class="form-card">
-            <p class="form-help">
-              ${isFavorite
-                ? "快速收藏只需要填標題、分類跟地址；其他資訊可以之後再補"
-                : "快速新增只需要填日期、開始時間、標題、分類跟地址；儲存時會提醒 30 分鐘內的時間衝突"}
-            </p>
-
             <form class="form-grid-full" data-action="submit-form">
               <input type="hidden" name="id" value="${formValue(item, "id")}">
               <input type="hidden" name="type" value="${attr(type)}">
@@ -6588,9 +6599,7 @@
     async function copyTextToClipboard(textValue, successMessage = "已複製") {
       try {
         await navigator.clipboard.writeText(textValue);
-        state.message = successMessage;
-        state.syncStatus = "";
-        render();
+        showToast(successMessage || "已複製");
       } catch (error) {
         window.prompt("請手動複製以下內容", textValue);
       }
@@ -6639,6 +6648,15 @@
       });
     }
 
+    function handleMoneySettingsOutsidePointerDown(event) {
+      if (state.screen !== "money" || !state.moneySettingsOpen) return;
+      const pop = app.querySelector(".expense-settings-pop");
+      if (!pop || !pop.open) return;
+      if (pop.contains(event.target)) return;
+      state.moneySettingsOpen = false;
+      pop.open = false;
+    }
+
     function render() {
       ensureSelectedDate();
 
@@ -6648,6 +6666,7 @@
           <div class="page content">
             <div class="loading-overlay">正在讀取行程資料</div>
           </div>
+          ${toastHtml()}
           ${bottomNavHtml()}
         `;
         bindEvents();
@@ -6664,7 +6683,7 @@
       if (state.screen === "favorite-detail") html = favoritePlaceDetailPageHtml();
       if (state.screen === "form") html = formPageHtml();
 
-      app.innerHTML = html + quickStopActionSheetHtml() + quickFavoriteActionSheetHtml() + quickExpenseActionSheetHtml() + (["detail", "favorite-detail", "form"].includes(state.screen) ? "" : bottomNavHtml());
+      app.innerHTML = html + quickStopActionSheetHtml() + quickFavoriteActionSheetHtml() + quickExpenseActionSheetHtml() + toastHtml() + (["detail", "favorite-detail", "form"].includes(state.screen) ? "" : bottomNavHtml());
       syncActionSheetScrollLock();
       bindEvents();
       bindExpenseSplitPayerControls();
@@ -6673,6 +6692,9 @@
     }
 
     function bindEvents() {
+      document.removeEventListener("pointerdown", handleMoneySettingsOutsidePointerDown, true);
+      document.addEventListener("pointerdown", handleMoneySettingsOutsidePointerDown, true);
+
       app.querySelectorAll("[data-action]").forEach((element) => {
         const action = element.dataset.action;
 
@@ -6939,7 +6961,7 @@
             if (!requireEditMode()) return;
             const place = findFavoriteById(element.dataset.favoriteId || state.quickFavoriteActionId);
             if (!place) return;
-            const ok = confirm(`確定要刪除這筆收藏？\n\n${place.title}\n\n刪除後會從 Google Sheet 移除。`);
+            const ok = confirm(`確定要刪除這筆收藏？\n\n${place.title}\n\n刪除後無法復原。`);
             if (!ok) return;
             state.quickFavoriteActionId = "";
             sendWrite("delete", { id: favoriteId(place), type: "收藏", title: place.title });
@@ -6988,8 +7010,8 @@
             state.quickExpenseActionId = "";
             state.expenses = state.expenses.filter((expense) => expense.id !== id);
             saveExpenses();
-            syncExpenseChanges([{ action: "delete", item }], "花費刪除已同步到 Google Sheet");
-            state.message = "已刪除花費紀錄";
+            syncExpenseChanges([{ action: "delete", item }], "已刪除");
+            showToast("已刪除");
             render();
           });
         }
@@ -7036,7 +7058,7 @@
             if (!requireEditMode()) return;
             const stop = findStopById(element.dataset.stopId || state.quickStopActionId);
             if (!stop) return;
-            const ok = confirm(`確定要刪除這筆行程？\n\n${stop.date || ""} ${stop.time || ""}\n${stop.title}\n\n刪除後會從 Google Sheet 移除。`);
+            const ok = confirm(`確定要刪除這筆行程？\n\n${stop.date || ""} ${stop.time || ""}\n${stop.title}\n\n刪除後無法復原。`);
             if (!ok) return;
             state.quickStopActionId = "";
             sendWrite("delete", { id: stopId(stop), type: "行程", title: stop.title });
@@ -7083,7 +7105,7 @@
             if (!requireEditMode()) return;
             const stop = findStopById(element.dataset.stopId || state.selectedStopId);
             if (!stop) return;
-            const ok = confirm(`確定要刪除這筆行程？\n\n${stop.date || ""} ${stop.time || ""}\n${stop.title}\n\n刪除後會從 Google Sheet 移除。`);
+            const ok = confirm(`確定要刪除這筆行程？\n\n${stop.date || ""} ${stop.time || ""}\n${stop.title}\n\n刪除後無法復原。`);
             if (!ok) return;
             sendWrite("delete", { id: stopId(stop), type: "行程", title: stop.title });
           });
@@ -7094,7 +7116,7 @@
             if (!requireEditMode()) return;
             const place = findFavoriteById(element.dataset.favoriteId || state.selectedFavoriteId);
             if (!place) return;
-            const ok = confirm(`確定要刪除這筆收藏？\n\n${place.title}\n\n刪除後會從 Google Sheet 移除。`);
+            const ok = confirm(`確定要刪除這筆收藏？\n\n${place.title}\n\n刪除後無法復原。`);
             if (!ok) return;
             sendWrite("delete", { id: favoriteId(place), type: "收藏", title: place.title });
           });
@@ -7204,9 +7226,8 @@
             saveCashWallet();
             saveTravelers();
             saveExpenses();
-            state.moneySettingsOpen = true;
-            state.message = "匯率跟三人日幣現金已更新";
-            render();
+            state.moneySettingsOpen = false;
+            showToast("已更新");
           });
         }
 
@@ -7219,9 +7240,9 @@
 
             try {
               await fetchLatestFxRate();
-              state.message = "已抓取最新匯率";
+              showToast("已更新");
             } catch (error) {
-              state.message = "匯率更新失敗，已沿用目前匯率";
+              showToast("更新失敗，稍後再試", "error", 2600);
             } finally {
               element.disabled = false;
               element.textContent = originalText;
@@ -7315,8 +7336,8 @@
               syncExpenseChanges([
                 { action: "delete", items: oldGroupItems },
                 { action: "create", items: newGroupItems }
-              ], "整組花費已同步到 Google Sheet");
-              state.message = `已更新整組花費，共 ${newGroupItems.length} 筆`;
+              ], "已同步");
+              showToast("已更新");
             } else {
               const owner = normalizePayerName(data.owner || item.owner || item.payer);
               const paidBy = normalizePayerName(data.paidBy || item.paidBy || item.payer);
@@ -7339,8 +7360,8 @@
                 };
                 return updatedExpense;
               });
-              if (updatedExpense) syncExpenseChanges([{ action: "update", item: updatedExpense }], "花費已同步到 Google Sheet");
-              state.message = "已更新這筆花費";
+              if (updatedExpense) syncExpenseChanges([{ action: "update", item: updatedExpense }], "已同步");
+              showToast("已更新");
             }
 
             state.expenseEditingId = "";
@@ -7372,8 +7393,8 @@
 
             state.expenses = [...newExpenses, ...state.expenses];
             saveExpenses();
-            syncExpenseChanges([{ action: "create", items: newExpenses }], "花費已同步到 Google Sheet");
-            state.message = newExpenses.length > 1 ? `已新增 ${newExpenses.length} 筆分攤花費` : "已新增花費紀錄";
+            syncExpenseChanges([{ action: "create", items: newExpenses }], "已同步");
+            showToast("已新增");
             render();
           });
         }
@@ -7388,8 +7409,8 @@
             state.quickExpenseActionId = "";
             state.expenses = state.expenses.filter((expense) => expense.id !== id);
             saveExpenses();
-            syncExpenseChanges([{ action: "delete", item }], "花費刪除已同步到 Google Sheet");
-            state.message = "已刪除花費紀錄";
+            syncExpenseChanges([{ action: "delete", item }], "已刪除");
+            showToast("已刪除");
             render();
           });
         }
@@ -7629,7 +7650,8 @@
 
     async function loadRows(force = false) {
       state.loading = true;
-      state.message = force ? "正在同步 Google Sheet 最新資料" : "";
+      state.message = "";
+      let toastAfterLoad = "";
       render();
 
       try {
@@ -7648,7 +7670,7 @@
         state.rows = parsed;
         localStorage.setItem("trip-html:google-sheet-live-v1", JSON.stringify(parsed));
         syncExpensesFromRows(parsed);
-        state.message = force ? "已同步最新資料" : "";
+        if (force) toastAfterLoad = "已同步";
       } catch (error) {
         const cached = localStorage.getItem("trip-html:google-sheet-live-v1");
         if (cached) {
@@ -7658,20 +7680,15 @@
         } else {
           state.rows = SAMPLE_ROWS;
           syncExpensesFromRows(state.rows);
-          state.message = "目前暫時顯示內建行程，雲端資料連線後會自動更新";
+          state.message = "目前顯示離線資料";
         }
       } finally {
         state.loading = false;
         ensureSelectedDate();
         render();
 
-        if (state.message === "已同步最新資料") {
-          setTimeout(() => {
-            if (state.message === "已同步最新資料") {
-              state.message = "";
-              render();
-            }
-          }, 1800);
+        if (toastAfterLoad) {
+          showToast(toastAfterLoad);
         }
       }
     }
