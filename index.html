@@ -580,6 +580,33 @@
       -webkit-tap-highlight-color: transparent;
     }
 
+    /* 只在列表卡片啟用長按選單防選字；進入詳情頁後保留手機原生選字 / 複製工具 */
+    [data-longpress-stop-id],
+    [data-longpress-stop-id] *,
+    [data-longpress-favorite-id],
+    [data-longpress-favorite-id] *,
+    [data-longpress-expense-id],
+    [data-longpress-expense-id] * {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    [data-longpress-stop-id],
+    [data-longpress-favorite-id],
+    [data-longpress-expense-id] {
+      touch-action: manipulation;
+    }
+
+    .detail-hero,
+    .detail-hero *,
+    .detail-body,
+    .detail-body * {
+      -webkit-user-select: text;
+      user-select: text;
+      -webkit-touch-callout: default;
+    }
+
     .today-item:active,
     .timeline-item:active {
       opacity: 0.72;
@@ -3445,6 +3472,97 @@
       }
     }
 
+
+
+    /* Bloom refinement: readable action buttons, tighter favorite search, richer today cards */
+    .dark-text-btn,
+    .expense-form-visual > .dark-text-btn,
+    .expense-settings-body .dark-text-btn {
+      color: #1F1F1F !important;
+    }
+
+    .favorite-search-card {
+      padding-bottom: 12px !important;
+    }
+
+    .favorite-search-helper strong {
+      color: var(--text);
+      font-weight: 950;
+    }
+
+    .today-list {
+      border-top: 0 !important;
+      border-bottom: 0 !important;
+      display: grid;
+      gap: 10px;
+      background: transparent !important;
+    }
+
+    .today-item {
+      align-items: flex-start !important;
+      gap: 13px !important;
+      border: 1px solid var(--line-soft) !important;
+      border-radius: 18px;
+      padding: 12px !important;
+      background: #fff;
+    }
+
+    .today-item:not(:last-child) {
+      border-bottom: 1px solid var(--line-soft) !important;
+    }
+
+    .today-item .thumb {
+      flex: 0 0 88px !important;
+      width: 88px !important;
+      height: 88px !important;
+      border-radius: 18px !important;
+    }
+
+    .today-title {
+      font-size: 15.8px !important;
+      line-height: 1.28 !important;
+      -webkit-line-clamp: 2;
+    }
+
+    .today-meta {
+      margin-top: 6px !important;
+      gap: 6px !important;
+      font-size: 11.2px !important;
+    }
+
+    .today-address,
+    .today-transit,
+    .today-alert {
+      margin-top: 6px !important;
+      font-size: 11.5px !important;
+      line-height: 1.45 !important;
+    }
+
+    .today-transit {
+      display: -webkit-box;
+      overflow: hidden;
+      color: var(--muted);
+      font-weight: 720;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .today-alert {
+      -webkit-line-clamp: 2 !important;
+    }
+
+    @media (max-width: 380px) {
+      .today-item .thumb {
+        flex-basis: 80px !important;
+        width: 80px !important;
+        height: 80px !important;
+      }
+
+      .today-title {
+        font-size: 15px !important;
+      }
+    }
+
   </style>
 </head>
 
@@ -3597,6 +3715,8 @@
       expenseEditingMode: "",
       expenseEditChoiceId: "",
       quickStopActionId: "",
+      quickFavoriteActionId: "",
+      quickExpenseActionId: "",
       longPressIgnoreClickUntil: 0,
       moneySettingsOpen: false,
       fxAutoChecked: false,
@@ -3619,6 +3739,7 @@
     };
 
     const app = document.getElementById("app");
+    let messageClearTimer = null;
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -4267,15 +4388,19 @@
     function favoriteSearchQueries(rawQuery) {
       const query = String(rawQuery || "").trim().replace(/\s+/g, " ");
       if (!query) return [];
-      const hasArea = /大阪|京都|日本|Osaka|Kyoto|Japan|Namba|Umeda|Shinsaibashi|Dotonbori|Gion|Kawaramachi|Arashiyama|Nishiki/i.test(query);
-      const queries = [query];
-      if (!hasArea) {
-        queries.push(`${query} 大阪`);
-        queries.push(`${query} 京都`);
-        queries.push(`${query} Osaka`);
-        queries.push(`${query} Kyoto`);
-      }
-      return [...new Set(queries)].slice(0, 5);
+      const cleanQuery = query.replace(/日本|Japan|東京|Tokyo|名古屋|Nagoya|奈良|Nara|神戶|Kobe/gi, "").trim() || query;
+      const queries = [
+        `${cleanQuery} 大阪`,
+        `${cleanQuery} 京都`,
+        `${cleanQuery} Osaka`,
+        `${cleanQuery} Kyoto`
+      ];
+      return [...new Set(queries)].slice(0, 4);
+    }
+
+    function isOsakaKyotoSearchResult(place) {
+      const text = `${place?.title || ""} ${place?.address || ""}`;
+      return /大阪|大阪府|大阪市|京都|京都府|京都市|Osaka|Kyoto/i.test(text);
     }
 
     function guessFavoriteSearchCategory(item) {
@@ -4310,7 +4435,8 @@
 
     function buildFavoriteSearchGoogleUrl(query) {
       const text = String(query || "").trim();
-      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(text || "大阪 京都")}`;
+      const scopedText = text ? `${text} 大阪 京都` : "大阪 京都";
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(scopedText)}`;
     }
 
     function isFavoriteSearchResultAlreadySaved(place) {
@@ -4353,15 +4479,18 @@
         responses.forEach((result) => {
           if (result.status !== "fulfilled") return;
           const items = Array.isArray(result.value) ? result.value : [];
-          items.map(normalizeFavoriteSearchPlace).filter((item) => item.title).forEach((item) => {
-            const key = `${item.title}__${item.address}`.toLowerCase();
-            if (seen.has(key)) return;
-            seen.add(key);
-            results.push(item);
-          });
+          items
+            .map(normalizeFavoriteSearchPlace)
+            .filter((item) => item.title && isOsakaKyotoSearchResult(item))
+            .forEach((item) => {
+              const key = `${item.title}__${item.address}`.toLowerCase();
+              if (seen.has(key)) return;
+              seen.add(key);
+              results.push(item);
+            });
         });
         state.favoriteSearchResults = results.slice(0, 6);
-        if (!state.favoriteSearchResults.length) state.favoriteSearchError = "找不到結果，可以多打一點名稱，或加上大阪 / 京都 / 英文名";
+        if (!state.favoriteSearchResults.length) state.favoriteSearchError = "找不到大阪 / 京都範圍內的結果，可以多打一點名稱或改用英文名";
       } catch (error) {
         state.favoriteSearchError = "搜尋失敗，請確認網路後再試";
       } finally {
@@ -4567,6 +4696,7 @@
       const duration = stop.duration ? `<span>${escapeHtml(stop.duration)}</span>` : "";
       const status = stop.status ? `<span>${escapeHtml(stop.status)}</span>` : "";
       const address = stop.address ? `<div class="today-address">${escapeHtml(stop.address)}</div>` : "";
+      const transit = stop.transitNote ? `<div class="today-transit">${escapeHtml(stop.transitNote)}</div>` : "";
       const notice = stop.notice ? `<div class="today-alert">${escapeHtml(stop.notice)}</div>` : "";
 
       return `
@@ -4581,6 +4711,7 @@
               ${status}
             </div>
             ${address}
+            ${transit}
             ${notice}
           </div>
           <div class="today-tail">›</div>
@@ -4696,6 +4827,18 @@
           ${state.syncStatus ? `<div class="sync-hint">${escapeHtml(state.syncStatus)}</div>` : ""}
         </div>
       `;
+    }
+
+    function scheduleMessageClear() {
+      if (messageClearTimer) {
+        window.clearTimeout(messageClearTimer);
+        messageClearTimer = null;
+      }
+      if (!state.message) return;
+      messageClearTimer = window.setTimeout(() => {
+        state.message = "";
+        render();
+      }, 1800);
     }
 
     function todayPageHtml() {
@@ -5240,7 +5383,7 @@
       const notice = place.notice ? `<div class="today-alert">${escapeHtml(place.notice)}</div>` : "";
 
       return `
-        <article class="today-item" data-action="open-favorite" data-favorite-id="${attr(id)}" tabindex="0" role="button" aria-label="查看 ${attr(place.title)} 詳情">
+        <article class="today-item" data-action="open-favorite" data-favorite-id="${attr(id)}" data-longpress-favorite-id="${attr(id)}" tabindex="0" role="button" aria-label="查看 ${attr(place.title)} 詳情">
           ${favoriteThumbnailHtml(place)}
           <div class="today-body">
             <h3 class="today-title">${escapeHtml(place.title)}</h3>
@@ -5292,11 +5435,11 @@
           </div>
           <div class="favorite-search-form">
             <div class="favorite-search-input-wrap">
-              <input class="field" data-action="favorite-place-search-input" value="${attr(state.favoriteSearchQuery)}" placeholder="搜尋景點、餐廳、店家" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+              <input class="field" data-action="favorite-place-search-input" value="${attr(state.favoriteSearchQuery)}" placeholder="搜尋大阪 / 京都景點、餐廳、店家" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
             </div>
             <button class="secondary-btn" data-action="favorite-place-search-submit" type="button" ${state.favoriteSearchLoading ? "disabled" : ""}>${state.favoriteSearchLoading ? "搜尋中" : "搜尋"}</button>
           </div>
-          <div class="favorite-search-helper">輸入後按搜尋，查大阪、京都景點跟店家</div>
+          <div class="favorite-search-helper">範圍限定 <strong>大阪 / 京都</strong>，輸入店名或景點名稱後按搜尋</div>
           ${hasSearchState ? `
             <div class="favorite-search-utility">
               <button class="mini-action" data-action="favorite-place-search-clear" type="button">清除搜尋</button>
@@ -5557,6 +5700,52 @@
       `;
     }
 
+    function quickFavoriteActionSheetHtml() {
+      if (!state.quickFavoriteActionId) return "";
+      const place = findFavoriteById(state.quickFavoriteActionId);
+      if (!place) return "";
+      return `
+        <div class="action-sheet-backdrop" data-action="close-quick-favorite-menu">
+          <section class="action-sheet" onclick="event.stopPropagation()">
+            <div class="action-sheet-title">
+              ${escapeHtml(place.title)}
+              <div class="action-sheet-sub">收藏快速操作</div>
+            </div>
+            <div class="action-sheet-grid">
+              <button class="action-sheet-btn primary" data-action="quick-convert-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">加入行程 <span>›</span></button>
+              <button class="action-sheet-btn" data-action="quick-edit-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">編輯收藏 <span>›</span></button>
+              <button class="action-sheet-btn" data-action="quick-copy-favorite-address" data-favorite-id="${attr(favoriteId(place))}" type="button">複製地址 <span>›</span></button>
+              <a class="action-sheet-btn" href="${attr(buildMapsSearchUrl(place))}" target="_blank" rel="noreferrer">查看地點 <span>›</span></a>
+              <button class="action-sheet-btn danger" data-action="quick-delete-favorite" data-favorite-id="${attr(favoriteId(place))}" type="button">刪除收藏 <span>›</span></button>
+              <button class="action-sheet-btn" data-action="close-quick-favorite-menu" type="button">取消</button>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    function quickExpenseActionSheetHtml() {
+      if (!state.quickExpenseActionId) return "";
+      const item = state.expenses.find((expense) => expense.id === state.quickExpenseActionId);
+      if (!item) return "";
+      return `
+        <div class="action-sheet-backdrop" data-action="close-quick-expense-menu">
+          <section class="action-sheet" onclick="event.stopPropagation()">
+            <div class="action-sheet-title">
+              ${escapeHtml(item.title)}
+              <div class="action-sheet-sub">${escapeHtml(formatMoney(item.amount, item.currency))}｜算 ${escapeHtml(item.owner || item.payer || "")}</div>
+            </div>
+            <div class="action-sheet-grid">
+              <button class="action-sheet-btn primary" data-action="quick-edit-expense" data-expense-id="${attr(item.id)}" type="button">編輯花費 <span>›</span></button>
+              <button class="action-sheet-btn" data-action="quick-copy-expense" data-expense-id="${attr(item.id)}" type="button">複製內容 <span>›</span></button>
+              <button class="action-sheet-btn danger" data-action="quick-delete-expense" data-expense-id="${attr(item.id)}" type="button">刪除花費 <span>›</span></button>
+              <button class="action-sheet-btn" data-action="close-quick-expense-menu" type="button">取消</button>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
     function moneyPageHtml() {
       const scopedExpenses = getScopedExpenses();
       const visibleExpenses = (state.expenseOwnerFilter || "all") === "all"
@@ -5595,7 +5784,7 @@
                     <div class="sync-hint">最後更新：${escapeHtml(formatUpdatedAt(state.fxUpdatedAt))}</div>
                     <div class="form-actions">
                       <button class="secondary-btn" data-action="update-fx-rate" type="button">檢查匯率</button>
-                      <button class="primary-btn" type="submit">儲存</button>
+                      <button class="primary-btn dark-text-btn" type="submit">儲存</button>
                     </div>
                   </form>
                 </div>
@@ -5678,7 +5867,7 @@
               <label class="form-label">備註
                 <input class="form-field" name="note" placeholder="可空白">
               </label>
-              <button class="primary-btn" type="submit">加入花費</button>
+              <button class="primary-btn dark-text-btn" type="submit">加入花費</button>
             </form>
           </section>
 
@@ -5726,7 +5915,7 @@
             ${visibleExpenses.length ? `
               <div class="expense-record-list-simple">
                 ${visibleExpenses.map((item) => `
-                  <article class="expense-record-row-simple">
+                  <article class="expense-record-row-simple" data-longpress-expense-id="${attr(item.id)}">
                     <div>
                       <div class="expense-record-title-simple">${escapeHtml(item.title)}</div>
                       <div class="expense-record-meta-simple">${escapeHtml(item.date)}｜算 ${escapeHtml(item.owner || item.payer || state.travelers[0])}</div>
@@ -6064,9 +6253,10 @@
       if (state.screen === "favorite-detail") html = favoritePlaceDetailPageHtml();
       if (state.screen === "form") html = formPageHtml();
 
-      app.innerHTML = html + quickStopActionSheetHtml() + (["detail", "favorite-detail", "form"].includes(state.screen) ? "" : bottomNavHtml());
+      app.innerHTML = html + quickStopActionSheetHtml() + quickFavoriteActionSheetHtml() + quickExpenseActionSheetHtml() + (["detail", "favorite-detail", "form"].includes(state.screen) ? "" : bottomNavHtml());
       bindEvents();
       setupSwipeBack();
+      scheduleMessageClear();
     }
 
     function bindEvents() {
@@ -6259,6 +6449,7 @@
 
         if (action === "open-favorite") {
           element.addEventListener("click", () => {
+            if (Date.now() < Number(state.longPressIgnoreClickUntil || 0)) return;
             state.previousScreen = state.screen === "favorite-detail" ? state.previousScreen : state.screen;
             state.selectedFavoriteId = element.dataset.favoriteId || "";
             state.selectedStopId = "";
@@ -6272,6 +6463,107 @@
         if (action === "close-quick-stop-menu") {
           element.addEventListener("click", () => {
             state.quickStopActionId = "";
+            render();
+          });
+        }
+
+        if (action === "close-quick-favorite-menu") {
+          element.addEventListener("click", () => {
+            state.quickFavoriteActionId = "";
+            render();
+          });
+        }
+
+        if (action === "close-quick-expense-menu") {
+          element.addEventListener("click", () => {
+            state.quickExpenseActionId = "";
+            render();
+          });
+        }
+
+        if (action === "quick-edit-favorite") {
+          element.addEventListener("click", () => {
+            if (!requireEditMode()) return;
+            const id = element.dataset.favoriteId || state.quickFavoriteActionId;
+            state.quickFavoriteActionId = "";
+            openForm("edit", "收藏", id);
+          });
+        }
+
+        if (action === "quick-convert-favorite") {
+          element.addEventListener("click", () => {
+            if (!requireEditMode()) return;
+            const id = element.dataset.favoriteId || state.quickFavoriteActionId;
+            state.quickFavoriteActionId = "";
+            openForm("convert", "行程", id);
+          });
+        }
+
+        if (action === "quick-copy-favorite-address") {
+          element.addEventListener("click", () => {
+            const place = findFavoriteById(element.dataset.favoriteId || state.quickFavoriteActionId);
+            if (!place) return;
+            state.quickFavoriteActionId = "";
+            copyTextToClipboard(place.address || place.title || "", "地址已複製");
+            render();
+          });
+        }
+
+        if (action === "quick-delete-favorite") {
+          element.addEventListener("click", () => {
+            if (!requireEditMode()) return;
+            const place = findFavoriteById(element.dataset.favoriteId || state.quickFavoriteActionId);
+            if (!place) return;
+            const ok = confirm(`確定要刪除這筆收藏？\n\n${place.title}\n\n刪除後會從 Google Sheet 移除。`);
+            if (!ok) return;
+            state.quickFavoriteActionId = "";
+            sendWrite("delete", { id: favoriteId(place), type: "收藏", title: place.title });
+          });
+        }
+
+        if (action === "quick-edit-expense") {
+          element.addEventListener("click", () => {
+            const id = element.dataset.expenseId || state.quickExpenseActionId || "";
+            const item = state.expenses.find((expense) => expense.id === id);
+            if (!item) return;
+            state.quickExpenseActionId = "";
+            if (item.groupId) {
+              state.expenseEditChoiceId = id;
+              state.expenseEditingId = "";
+              state.expenseEditingMode = "";
+            } else {
+              state.expenseEditingId = id;
+              state.expenseEditingMode = "single";
+              state.expenseEditChoiceId = "";
+            }
+            render();
+            setTimeout(() => document.getElementById("expense-edit-panel")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+          });
+        }
+
+        if (action === "quick-copy-expense") {
+          element.addEventListener("click", () => {
+            const item = state.expenses.find((expense) => expense.id === (element.dataset.expenseId || state.quickExpenseActionId));
+            if (!item) return;
+            state.quickExpenseActionId = "";
+            const text = `${item.date || ""}｜${item.title}｜${formatMoney(item.amount, item.currency)}｜算 ${item.owner || item.payer || ""}｜${item.paidBy || item.payer || ""}付款`;
+            copyTextToClipboard(text, "花費內容已複製");
+            render();
+          });
+        }
+
+        if (action === "quick-delete-expense") {
+          element.addEventListener("click", () => {
+            const id = element.dataset.expenseId || state.quickExpenseActionId || "";
+            const item = state.expenses.find((expense) => expense.id === id);
+            if (!item) return;
+            const ok = confirm(`確定要刪除這筆花費？\n\n${item.title}\n${formatMoney(item.amount, item.currency)}`);
+            if (!ok) return;
+            state.quickExpenseActionId = "";
+            state.quickExpenseActionId = "";
+            state.expenses = state.expenses.filter((expense) => expense.id !== id);
+            saveExpenses();
+            state.message = "已刪除花費紀錄";
             render();
           });
         }
@@ -6640,6 +6932,7 @@
             if (!item) return;
             const ok = confirm(`確定要刪除這筆花費？\n\n${item.title}\n${formatMoney(item.amount, item.currency)}`);
             if (!ok) return;
+            state.quickExpenseActionId = "";
             state.expenses = state.expenses.filter((expense) => expense.id !== id);
             saveExpenses();
             state.message = "已刪除花費紀錄";
@@ -6660,30 +6953,91 @@
       });
 
 
-      app.querySelectorAll("[data-longpress-stop-id]").forEach((element) => {
-        let timer = null;
-        let moved = false;
-        const clear = () => {
-          if (timer) window.clearTimeout(timer);
-          timer = null;
-        };
-        const start = () => {
-          moved = false;
-          clear();
-          timer = window.setTimeout(() => {
-            if (moved) return;
-            state.quickStopActionId = element.dataset.longpressStopId || "";
-            state.longPressIgnoreClickUntil = Date.now() + 900;
-            render();
-          }, 560);
-        };
-        element.addEventListener("touchstart", start, { passive: true });
-        element.addEventListener("mousedown", start);
-        element.addEventListener("touchmove", () => { moved = true; clear(); }, { passive: true });
-        element.addEventListener("mousemove", () => { moved = true; clear(); });
-        element.addEventListener("touchend", clear, { passive: true });
-        element.addEventListener("mouseup", clear);
-        element.addEventListener("mouseleave", clear);
+      const bindLongPressMenu = (selector, getId, openMenu) => {
+        app.querySelectorAll(selector).forEach((element) => {
+          let timer = null;
+          let startX = 0;
+          let startY = 0;
+          let fired = false;
+
+          const clear = () => {
+            if (timer) window.clearTimeout(timer);
+            timer = null;
+          };
+
+          const getPoint = (event) => event.touches?.[0] || event.changedTouches?.[0] || event;
+
+          const start = (event) => {
+            if (event.target.closest("button, a, input, select, textarea")) return;
+            const point = getPoint(event);
+            startX = point.clientX || 0;
+            startY = point.clientY || 0;
+            fired = false;
+            clear();
+            timer = window.setTimeout(() => {
+              fired = true;
+              const id = getId(element);
+              if (!id) return;
+              state.longPressIgnoreClickUntil = Date.now() + 1200;
+              if (navigator.vibrate) navigator.vibrate(8);
+              openMenu(id);
+              render();
+            }, 480);
+          };
+
+          const move = (event) => {
+            const point = getPoint(event);
+            const dx = Math.abs((point.clientX || 0) - startX);
+            const dy = Math.abs((point.clientY || 0) - startY);
+            if (dx > 10 || dy > 10) clear();
+          };
+
+          const end = (event) => {
+            clear();
+            if (fired) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          };
+
+          element.addEventListener("touchstart", start, { passive: true });
+          element.addEventListener("mousedown", start);
+          element.addEventListener("touchmove", move, { passive: true });
+          element.addEventListener("mousemove", move);
+          element.addEventListener("touchend", end, { passive: false });
+          element.addEventListener("mouseup", end);
+          element.addEventListener("mouseleave", clear);
+          element.addEventListener("touchcancel", clear, { passive: true });
+        });
+      };
+
+      bindLongPressMenu("[data-longpress-stop-id]",
+        (element) => element.dataset.longpressStopId || "",
+        (id) => { state.quickStopActionId = id; }
+      );
+
+      bindLongPressMenu("[data-longpress-favorite-id]",
+        (element) => element.dataset.longpressFavoriteId || "",
+        (id) => { state.quickFavoriteActionId = id; }
+      );
+
+      bindLongPressMenu("[data-longpress-expense-id]",
+        (element) => element.dataset.longpressExpenseId || "",
+        (id) => { state.quickExpenseActionId = id; }
+      );
+
+      document.addEventListener("contextmenu", (event) => {
+        if (event.target.closest(".detail-hero, .detail-body")) return;
+        if (event.target.closest("[data-longpress-stop-id], [data-longpress-favorite-id], [data-longpress-expense-id]")) {
+          event.preventDefault();
+        }
+      });
+
+      document.addEventListener("selectstart", (event) => {
+        if (event.target.closest(".detail-hero, .detail-body")) return;
+        if (event.target.closest("[data-longpress-stop-id], [data-longpress-favorite-id], [data-longpress-expense-id]")) {
+          event.preventDefault();
+        }
       });
 
       app.querySelectorAll(".expense-settings-pop").forEach((details) => {
