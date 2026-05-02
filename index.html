@@ -4246,10 +4246,62 @@
       return trimmed || "TRUE";
     }
 
+    function pad2(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function isIsoDateTimeValue(value) {
+      return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(String(value || "").trim());
+    }
+
+    function normalizeSheetDateValue(value) {
+      const text = String(value ?? "").trim();
+      if (!text) return "";
+      if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+
+      // Apps Script 會把 Google Sheet 的日期格輸出成 ISO，例如：
+      // 2026-05-30T16:00:00.000Z。手機在台灣時區顯示時，實際日期應為 2026-05-31。
+      if (isIsoDateTimeValue(text)) {
+        const date = new Date(text);
+        if (!Number.isNaN(date.getTime())) {
+          return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+        }
+      }
+
+      return text;
+    }
+
+    function normalizeSheetTimeValue(value) {
+      const text = String(value ?? "").trim();
+      if (!text) return "";
+      if (/^\d{1,2}:\d{2}$/.test(text)) {
+        const [hour, minute] = text.split(":");
+        return `${pad2(Number(hour))}:${minute}`;
+      }
+
+      // Apps Script 會把 Google Sheet 的時間格輸出成 1899-12-30Txx:xx:xx.000Z。
+      // 這不是日期，是 Google Sheet 的「純時間」序列基準，所以前端要轉回 HH:mm。
+      if (isIsoDateTimeValue(text)) {
+        const date = new Date(text);
+        if (!Number.isNaN(date.getTime())) {
+          return `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+        }
+      }
+
+      return text;
+    }
+
+    function normalizeSheetValue(field, value) {
+      if (field === "date") return normalizeSheetDateValue(value);
+      if (field === "time" || field === "endTime") return normalizeSheetTimeValue(value);
+      return String(value ?? "").trim();
+    }
+
     function normalizeRow(row) {
       const out = {};
       Object.entries(row || {}).forEach(([key, value]) => {
-        out[normalizeFieldName(key)] = String(value ?? "").trim();
+        const field = normalizeFieldName(key);
+        out[field] = normalizeSheetValue(field, value);
       });
       if (out.type) out.type = normalizeTypeValue(out.type);
       if (out.visible) out.visible = normalizeVisibleValue(out.visible);
