@@ -2730,14 +2730,14 @@
       font-weight: 900;
       line-height: 1;
     }
-    
-    .split-custom-panel {
-  display: none;
-}
 
-.expense-form-visual:has(input[name="splitType"][value="custom"]:checked) .split-custom-panel {
-  display: grid;
-}
+    .split-custom-panel {
+      display: none;
+    }
+
+    .expense-form-visual:has(input[name="splitType"][value="custom"]:checked) .split-custom-panel {
+      display: grid;
+    }
 
     @media (max-width: 390px) {
       .visual-category-grid {
@@ -3410,6 +3410,7 @@
       fxUpdatedAt: getStoredFxUpdatedAt(),
       travelers: getStoredTravelers(),
       moneyScope: "trip",
+      expenseOwnerFilter: "all",
       moneySettingsOpen: false,
       fxAutoChecked: false,
       loading: true,
@@ -3469,20 +3470,31 @@
 
         return parsed
           .map((item) => {
-            const payer = normalizePayerName(item.payer || item.person || travelers[0] || FIXED_TRAVELERS[0]);
+            const legacyPayer = normalizePayerName(item.payer || item.person || travelers[0] || FIXED_TRAVELERS[0]);
+            const owner = normalizePayerName(item.owner || legacyPayer || travelers[0] || FIXED_TRAVELERS[0]);
+            const paidBy = normalizePayerName(item.paidBy || legacyPayer || owner || travelers[0] || FIXED_TRAVELERS[0]);
+            const splitType = ["self", "all", "custom"].includes(item.splitType) ? item.splitType : "self";
+            const splitWith = Array.isArray(item.splitWith) && item.splitWith.length
+              ? item.splitWith.map(normalizePayerName).filter(Boolean)
+              : [owner];
             return {
               id: item.id || `expense_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+              groupId: item.groupId || null,
+              groupSize: Number(item.groupSize || splitWith.length || 1),
               date: item.date || todayISO(),
               title: item.title || "未命名花費",
               amount: Number(item.amount || 0),
+              originalAmount: Number(item.originalAmount || item.amount || 0),
               currency: item.currency === "TWD" ? "TWD" : "JPY",
-              payer: payer || FIXED_TRAVELERS[0],
+              paidBy,
+              owner,
+              payer: owner,
               category: item.category || "其他",
               payment: item.payment === "現金" ? "現金" : "刷卡",
               note: item.note || "",
-splitType: item.splitType || "self",
-splitWith: Array.isArray(item.splitWith) && item.splitWith.length ? item.splitWith : [payer],
-createdAt: item.createdAt || new Date().toISOString()
+              splitType,
+              splitWith,
+              createdAt: item.createdAt || new Date().toISOString()
             };
           })
           .filter((item) => item.amount > 0)
@@ -3659,7 +3671,7 @@ createdAt: item.createdAt || new Date().toISOString()
 
         function getCashSpent(currency, payer = "") {
       return (Array.isArray(state.expenses) ? state.expenses : [])
-        .filter((item) => item.currency === currency && item.payment === "現金" && (!payer || item.payer === payer))
+        .filter((item) => item.currency === currency && item.payment === "現金" && (!payer || (item.paidBy || item.payer) === payer))
         .reduce((sum, item) => sum + Number(item.amount || 0), 0);
     }
 
@@ -3679,7 +3691,7 @@ createdAt: item.createdAt || new Date().toISOString()
     function getTravelerExpenseStats(list = getScopedExpenses()) {
       const names = state.travelers && state.travelers.length ? state.travelers : getStoredTravelers();
       return names.map((name) => {
-        const personList = list.filter((item) => item.payer === name);
+        const personList = list.filter((item) => (item.owner || item.payer) === name);
         const totals = sumExpenses(personList);
         return {
           name,
@@ -3713,7 +3725,7 @@ createdAt: item.createdAt || new Date().toISOString()
       });
       lines.push("");
       scoped.forEach((item, index) => {
-        lines.push(`${index + 1}. ${item.date}｜${item.title}｜${formatMoney(item.amount, item.currency)}｜${item.payer}｜${item.category}｜${item.payment}`);
+        lines.push(`${index + 1}. ${item.date}｜${item.title}｜${formatMoney(item.amount, item.currency)}｜算 ${item.owner || item.payer}｜${item.paidBy || item.payer}付款｜${item.category}｜${item.payment}`);
         if (item.note) lines.push(`備註：${item.note}`);
       });
       return lines.join("\n").trim();
@@ -5158,8 +5170,11 @@ createdAt: item.createdAt || new Date().toISOString()
 
     function moneyPageHtml() {
       const scopedExpenses = getScopedExpenses();
+      const visibleExpenses = (state.expenseOwnerFilter || "all") === "all"
+        ? scopedExpenses
+        : scopedExpenses.filter((item) => (item.owner || item.payer) === state.expenseOwnerFilter);
       const travelerStats = getTravelerExpenseStats(scopedExpenses);
-      const defaultDate = state.selectedDate || todayISO();
+      const defaultDate = todayISO();
       const scopeLabel = state.moneyScope === "day" ? "當日" : "全旅程";
       const categories = [["餐飲", "食"], ["交通", "移"], ["購物", "買"], ["門票", "票"], ["住宿", "宿"], ["伴手禮", "禮"], ["其他", "其"]];
 
@@ -5224,7 +5239,30 @@ createdAt: item.createdAt || new Date().toISOString()
                   <label class="visual-choice"><input type="radio" name="payment" value="現金" checked><span>現金</span></label>
                   <label class="visual-choice"><input type="radio" name="payment" value="刷卡"><span>刷卡</span></label>
                 </div>
-                <div class="visual-cash-hint">只有 JPY＋現金會扣該付款人的日幣現金</div>
+                <div class="visual-cash-hint">只有 JPY＋現金會扣實際付款人的日幣現金</div>
+              </section>
+
+              <section class="visual-block">
+                <div class="visual-label">分攤方式</div>
+                <div class="visual-choice-row">
+                  <label class="visual-choice"><input type="radio" name="splitType" value="self" checked><span>個人花費</span></label>
+                  <label class="visual-choice"><input type="radio" name="splitType" value="all"><span>全員平分</span></label>
+                  <label class="visual-choice"><input type="radio" name="splitType" value="custom"><span>自訂分攤</span></label>
+                </div>
+                <div class="visual-cash-hint">預設個人花費，不會自動分給其他人</div>
+              </section>
+
+              <section class="visual-block split-custom-panel">
+                <div class="visual-label">自訂分攤對象</div>
+                <div class="visual-choice-row">
+                  ${state.travelers.map((name) => `
+                    <label class="visual-choice">
+                      <input type="checkbox" name="splitWith" value="${attr(name)}">
+                      <span>${escapeHtml(name)}</span>
+                    </label>
+                  `).join("")}
+                </div>
+                <div class="visual-cash-hint">只有選「自訂分攤」時才會使用這裡</div>
               </section>
 
               <section class="visual-block">
@@ -5248,37 +5286,6 @@ createdAt: item.createdAt || new Date().toISOString()
                 </label>
               </section>
 
-<section class="visual-block">
-  <div class="visual-label">分攤方式</div>
-  <div class="visual-choice-row">
-    <label class="visual-choice">
-      <input type="radio" name="splitType" value="self" checked>
-      <span>個人花費</span>
-    </label>
-    <label class="visual-choice">
-      <input type="radio" name="splitType" value="all">
-      <span>全員平分</span>
-    </label>
-    <label class="visual-choice">
-      <input type="radio" name="splitType" value="custom">
-      <span>自訂分攤</span>
-    </label>
-  </div>
-  <div class="visual-cash-hint">預設個人花費，不會進入分帳結算</div>
-</section>
-
-<section class="visual-block split-custom-panel">
-  <div class="visual-label">自訂分攤對象</div>
-  <div class="visual-choice-row">
-    ${state.travelers.map((name) => `
-      <label class="visual-choice">
-        <input type="checkbox" name="splitWith" value="${attr(name)}">
-        <span>${escapeHtml(name)}</span>
-      </label>
-    `).join("")}
-  </div>
-  <div class="visual-cash-hint">只有選「自訂分攤」時才會使用這裡</div>
-</section>
               <label class="form-label">備註
                 <input class="form-field" name="note" placeholder="可空白">
               </label>
@@ -5314,25 +5321,32 @@ createdAt: item.createdAt || new Date().toISOString()
             <div class="expense-panel-head">
               <div>
                 <h2 class="expense-panel-title">花費紀錄</h2>
-                <div class="expense-panel-sub">${escapeHtml(String(scopedExpenses.length))} 筆｜${escapeHtml(scopeLabel)}</div>
+                <div class="expense-panel-sub">${escapeHtml(String(visibleExpenses.length))} 筆｜${escapeHtml(scopeLabel)}</div>
               </div>
               <button class="mini-action" data-action="export-expense-summary" type="button">匯出</button>
             </div>
-            ${scopedExpenses.length ? `
+            <div class="expense-mini-tabs">
+              <button class="expense-mini-tab ${(state.expenseOwnerFilter || "all") === "all" ? "active" : ""}" data-action="set-expense-owner-filter" data-owner="all" type="button">全部</button>
+              ${state.travelers.map((name) => `
+                <button class="expense-mini-tab ${(state.expenseOwnerFilter || "all") === name ? "active" : ""}" data-action="set-expense-owner-filter" data-owner="${attr(name)}" type="button">${escapeHtml(name)}</button>
+              `).join("")}
+            </div>
+            ${visibleExpenses.length ? `
               <div class="expense-record-list-simple">
-                ${scopedExpenses.map((item) => `
+                ${visibleExpenses.map((item) => `
                   <article class="expense-record-row-simple">
                     <div>
                       <div class="expense-record-title-simple">${escapeHtml(item.title)}</div>
-                      <div class="expense-record-meta-simple">${escapeHtml(item.date)}｜${escapeHtml(item.payer || state.travelers[0])}</div>
+                      <div class="expense-record-meta-simple">${escapeHtml(item.date)}｜算 ${escapeHtml(item.owner || item.payer || state.travelers[0])}</div>
                       <div class="expense-record-tags-simple">
-                        <span class="expense-record-tag">${escapeHtml(item.category)}</span>
-                        <span class="expense-record-tag">${escapeHtml(item.payment)}</span>
-                        <span class="expense-record-tag">${escapeHtml(item.currency)}</span>
-                        ${item.note ? `<span class="expense-record-tag">${escapeHtml(item.note)}</span>` : ""}
-                      ${item.splitType === "all" ? `<span class="expense-pill-simple">全員平分</span>` : ""}
-${item.splitType === "custom" ? `<span class="expense-pill-simple">自訂分攤：${escapeHtml((item.splitWith || []).join("、"))}</span>` : ""}
-${!item.splitType || item.splitType === "self" ? `<span class="expense-pill-simple">個人花費</span>` : ""}
+                        <span class="expense-pill-simple">${escapeHtml(item.category)}</span>
+                        <span class="expense-pill-simple">${escapeHtml(item.payment)}</span>
+                        <span class="expense-pill-simple">${escapeHtml(item.currency)}</span>
+                        <span class="expense-pill-simple">${escapeHtml(item.paidBy || item.payer || state.travelers[0])}付款</span>
+                        ${item.splitType === "all" ? `<span class="expense-pill-simple">全員平分</span>` : ""}
+                        ${item.splitType === "custom" ? `<span class="expense-pill-simple">自訂分攤：${escapeHtml((item.splitWith || []).join("、"))}</span>` : ""}
+                        ${!item.splitType || item.splitType === "self" ? `<span class="expense-pill-simple">個人花費</span>` : ""}
+                        ${item.note ? `<span class="expense-pill-simple">${escapeHtml(item.note)}</span>` : ""}
                       </div>
                       <button class="delete-expense-btn" data-action="delete-expense" data-expense-id="${attr(item.id)}" type="button">刪除</button>
                     </div>
@@ -6042,44 +6056,68 @@ ${!item.splitType || item.splitType === "self" ? `<span class="expense-pill-simp
           });
         }
 
+        if (action === "set-expense-owner-filter") {
+          element.addEventListener("click", () => {
+            state.expenseOwnerFilter = element.dataset.owner || "all";
+            render();
+          });
+        }
+
         if (action === "add-expense") {
-  element.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const data = Object.fromEntries(formData.entries());
+          element.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const formData = new FormData(event.currentTarget);
+            const data = Object.fromEntries(formData.entries());
             const amount = normalizeMoneyAmount(data.amount);
             if (!amount) {
               state.message = "金額格式不正確";
               render();
               return;
             }
-            
-            const splitType = ["self", "all", "custom"].includes(data.splitType) ? data.splitType : "self";
-const customSplitWith = formData.getAll("splitWith").filter(Boolean);
-const splitWith =
-  splitType === "all"
-    ? [...state.travelers]
-    : splitType === "custom"
-      ? (customSplitWith.length ? customSplitWith : [normalizePayerName(data.payer || state.travelers[0] || FIXED_TRAVELERS[0])])
-      : [normalizePayerName(data.payer || state.travelers[0] || FIXED_TRAVELERS[0])];
 
-const expense = {
-  id: `expense_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-  date: data.date || state.selectedDate || todayISO(),
-  title: String(data.title || "").trim() || "未命名花費",
-  amount,
-  currency: data.currency === "TWD" ? "TWD" : "JPY",
-  payer: normalizePayerName(data.payer || state.travelers[0] || FIXED_TRAVELERS[0]),
-  category: data.category || "其他",
-  payment: data.payment === "刷卡" ? "刷卡" : "現金",
-  note: String(data.note || "").trim(),
-  splitType,
-  splitWith,
-  createdAt: new Date().toISOString()
-};
-            state.expenses = [expense, ...state.expenses];
+            const splitType = ["self", "all", "custom"].includes(data.splitType) ? data.splitType : "self";
+            const paidBy = normalizePayerName(data.payer || state.travelers[0] || FIXED_TRAVELERS[0]);
+            const customSplitWith = formData.getAll("splitWith").map(normalizePayerName).filter(Boolean);
+            const owners = splitType === "all"
+              ? [...state.travelers]
+              : splitType === "custom"
+                ? customSplitWith
+                : [paidBy];
+            const safeOwners = [...new Set(owners.length ? owners : [paidBy])];
+            const groupId = `expense_group_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+            const totalAmount = Math.round(amount);
+            const baseShare = Math.floor(totalAmount / safeOwners.length);
+            const remainder = totalAmount % safeOwners.length;
+            const title = String(data.title || "").trim() || "未命名花費";
+            const currency = data.currency === "TWD" ? "TWD" : "JPY";
+            const createdAt = new Date().toISOString();
+
+            const newExpenses = safeOwners.map((owner, index) => {
+              const shareAmount = baseShare + (index < remainder ? 1 : 0);
+              return {
+                id: `expense_${Date.now()}_${index}_${Math.random().toString(16).slice(2)}`,
+                groupId: splitType === "self" ? null : groupId,
+                groupSize: safeOwners.length,
+                date: data.date || todayISO(),
+                title,
+                amount: shareAmount,
+                originalAmount: totalAmount,
+                currency,
+                paidBy,
+                owner,
+                payer: owner,
+                category: data.category || "其他",
+                payment: data.payment === "刷卡" ? "刷卡" : "現金",
+                note: String(data.note || "").trim(),
+                splitType,
+                splitWith: safeOwners,
+                createdAt
+              };
+            });
+
+            state.expenses = [...newExpenses, ...state.expenses];
             saveExpenses();
-            state.message = "已新增花費紀錄";
+            state.message = newExpenses.length > 1 ? `已新增 ${newExpenses.length} 筆分攤花費` : "已新增花費紀錄";
             render();
           });
         }
@@ -6152,31 +6190,3 @@ const expense = {
         state.loading = false;
         ensureSelectedDate();
         render();
-
-        if (state.message === "已同步最新資料") {
-          setTimeout(() => {
-            if (state.message === "已同步最新資料") {
-              state.message = "";
-              render();
-            }
-          }, 1800);
-        }
-      }
-    }
-
-    ["pointerdown", "pointerup", "touchstart", "touchend", "mousedown", "mouseup", "click"].forEach((eventName) => {
-      app.addEventListener(eventName, blockSearchImeGhostTap, true);
-    });
-
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./sw.js").catch(() => {});
-      });
-    }
-
-    render();
-    loadRows(false);
-    maybeAutoUpdateFxRate();
-  </script>
-</body>
-</html>
