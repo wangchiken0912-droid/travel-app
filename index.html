@@ -6190,3 +6190,31 @@
         state.loading = false;
         ensureSelectedDate();
         render();
+        
+        if (state.message === "已同步最新資料") {
+          setTimeout(() => {
+            if (state.message === "已同步最新資料") {
+              state.message = "";
+              render();
+            }
+          }, 1800);
+        }
+      }
+    }
+
+    ["pointerdown", "pointerup", "touchstart", "touchend", "mousedown", "mouseup", "click"].forEach((eventName) => {
+      app.addEventListener(eventName, blockSearchImeGhostTap, true);
+    });
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      });
+    }
+
+    render();
+    loadRows(false);
+    maybeAutoUpdateFxRate();
+  </script>
+</body>
+</html>
