@@ -2730,6 +2730,14 @@
       font-weight: 900;
       line-height: 1;
     }
+    
+    .split-custom-panel {
+  display: none;
+}
+
+.expense-form-visual:has(input[name="splitType"][value="custom"]:checked) .split-custom-panel {
+  display: grid;
+}
 
     @media (max-width: 390px) {
       .visual-category-grid {
@@ -3472,6 +3480,7 @@
               category: item.category || "其他",
               payment: item.payment === "現金" ? "現金" : "刷卡",
               note: item.note || "",
+splitType: item.splitType || "self",
 splitWith: Array.isArray(item.splitWith) && item.splitWith.length ? item.splitWith : [payer],
 createdAt: item.createdAt || new Date().toISOString()
             };
@@ -5240,15 +5249,35 @@ createdAt: item.createdAt || new Date().toISOString()
               </section>
 
 <section class="visual-block">
-  <div class="visual-label">平分對象</div>
+  <div class="visual-label">分攤方式</div>
+  <div class="visual-choice-row">
+    <label class="visual-choice">
+      <input type="radio" name="splitType" value="self" checked>
+      <span>個人花費</span>
+    </label>
+    <label class="visual-choice">
+      <input type="radio" name="splitType" value="all">
+      <span>全員平分</span>
+    </label>
+    <label class="visual-choice">
+      <input type="radio" name="splitType" value="custom">
+      <span>自訂分攤</span>
+    </label>
+  </div>
+  <div class="visual-cash-hint">預設個人花費，不會進入分帳結算</div>
+</section>
+
+<section class="visual-block split-custom-panel">
+  <div class="visual-label">自訂分攤對象</div>
   <div class="visual-choice-row">
     ${state.travelers.map((name) => `
       <label class="visual-choice">
-        <input type="checkbox" name="splitWith" value="${attr(name)}" checked>
+        <input type="checkbox" name="splitWith" value="${attr(name)}">
         <span>${escapeHtml(name)}</span>
       </label>
     `).join("")}
   </div>
+  <div class="visual-cash-hint">只有選「自訂分攤」時才會使用這裡</div>
 </section>
               <label class="form-label">備註
                 <input class="form-field" name="note" placeholder="可空白">
@@ -5301,6 +5330,9 @@ createdAt: item.createdAt || new Date().toISOString()
                         <span class="expense-record-tag">${escapeHtml(item.payment)}</span>
                         <span class="expense-record-tag">${escapeHtml(item.currency)}</span>
                         ${item.note ? `<span class="expense-record-tag">${escapeHtml(item.note)}</span>` : ""}
+                      ${item.splitType === "all" ? `<span class="expense-pill-simple">全員平分</span>` : ""}
+${item.splitType === "custom" ? `<span class="expense-pill-simple">自訂分攤：${escapeHtml((item.splitWith || []).join("、"))}</span>` : ""}
+${!item.splitType || item.splitType === "self" ? `<span class="expense-pill-simple">個人花費</span>` : ""}
                       </div>
                       <button class="delete-expense-btn" data-action="delete-expense" data-expense-id="${attr(item.id)}" type="button">刪除</button>
                     </div>
@@ -6021,19 +6053,30 @@ createdAt: item.createdAt || new Date().toISOString()
               render();
               return;
             }
-            const expense = {
-              id: `expense_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-              date: data.date || state.selectedDate || todayISO(),
-              title: String(data.title || "").trim() || "未命名花費",
-              amount,
-              currency: data.currency === "TWD" ? "TWD" : "JPY",
-              payer: normalizePayerName(data.payer || state.travelers[0] || FIXED_TRAVELERS[0]),
-              category: data.category || "其他",
-              payment: data.payment === "刷卡" ? "刷卡" : "現金",
-              note: String(data.note || "").trim(),
-splitWith: formData.getAll("splitWith").filter(Boolean),
-createdAt: new Date().toISOString()
-            };
+            
+            const splitType = ["self", "all", "custom"].includes(data.splitType) ? data.splitType : "self";
+const customSplitWith = formData.getAll("splitWith").filter(Boolean);
+const splitWith =
+  splitType === "all"
+    ? [...state.travelers]
+    : splitType === "custom"
+      ? (customSplitWith.length ? customSplitWith : [normalizePayerName(data.payer || state.travelers[0] || FIXED_TRAVELERS[0])])
+      : [normalizePayerName(data.payer || state.travelers[0] || FIXED_TRAVELERS[0])];
+
+const expense = {
+  id: `expense_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+  date: data.date || state.selectedDate || todayISO(),
+  title: String(data.title || "").trim() || "未命名花費",
+  amount,
+  currency: data.currency === "TWD" ? "TWD" : "JPY",
+  payer: normalizePayerName(data.payer || state.travelers[0] || FIXED_TRAVELERS[0]),
+  category: data.category || "其他",
+  payment: data.payment === "刷卡" ? "刷卡" : "現金",
+  note: String(data.note || "").trim(),
+  splitType,
+  splitWith,
+  createdAt: new Date().toISOString()
+};
             state.expenses = [expense, ...state.expenses];
             saveExpenses();
             state.message = "已新增花費紀錄";
