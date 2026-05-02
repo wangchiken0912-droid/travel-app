@@ -2774,6 +2774,16 @@
       box-shadow: 0 9px 20px rgba(47, 128, 237, .08);
     }
 
+    .visual-choice.locked span {
+      opacity: .86;
+      cursor: default;
+    }
+
+    .visual-choice.locked input:checked + span {
+      border-color: rgba(47, 128, 237, .32);
+      background: linear-gradient(0deg, rgba(47, 128, 237, .04), rgba(47, 128, 237, .04)), var(--primary-soft);
+    }
+
     .visual-category-grid .visual-choice span {
       width: 100%;
       min-height: 54px;
@@ -5766,7 +5776,10 @@
 
       const splitType = ["self", "all", "custom"].includes(data.splitType) ? data.splitType : "self";
       const paidBy = normalizePayerName(data.paidBy || data.payer || state.travelers[0] || FIXED_TRAVELERS[0]);
-      const customSplitWith = formData.getAll("splitWith").map(normalizePayerName).filter(Boolean);
+      const customSplitWith = formData.getAll("splitWith")
+        .map(normalizePayerName)
+        .filter((name) => Boolean(name) && name !== paidBy);
+      if (splitType === "custom" && !customSplitWith.length) return [];
       const owners = splitType === "all"
         ? [...state.travelers]
         : splitType === "custom"
@@ -5896,7 +5909,7 @@
                     <label class="visual-choice"><input type="checkbox" name="splitWith" value="${attr(name)}" ${selectedOwners.includes(name) ? "checked" : ""}><span>${escapeHtml(name)}</span></label>
                   `).join("")}
                 </div>
-                <div class="visual-cash-hint">付款人會自動加入分攤，這裡只需要勾選其他要一起分的人</div>
+                <div class="visual-cash-hint">付款人會自動鎖定加入分攤，這裡只需要勾選其他要一起分的人</div>
               </section>
             `}
             <section class="visual-secondary-fields">
@@ -6096,7 +6109,7 @@
                     </label>
                   `).join("")}
                 </div>
-                <div class="visual-cash-hint">付款人會自動加入分攤，這裡只需要勾選其他要一起分的人</div>
+                <div class="visual-cash-hint">付款人會自動鎖定加入分攤，這裡只需要勾選其他要一起分的人</div>
               </section>
 
               <section class="visual-block">
@@ -6480,6 +6493,41 @@
       }
     }
 
+    function syncExpenseSplitPayerControls(root = app) {
+      root.querySelectorAll('form[data-action="add-expense"], form[data-action="save-expense-edit"]').forEach((form) => {
+        const payerInput = form.querySelector('input[name="payer"]:checked') || form.querySelector('input[name="paidBy"]:checked');
+        const paidBy = payerInput ? normalizePayerName(payerInput.value) : "";
+
+        form.querySelectorAll('input[name="splitWith"]').forEach((input) => {
+          const label = input.closest('.visual-choice');
+          const isPayer = paidBy && normalizePayerName(input.value) === paidBy;
+
+          if (isPayer) {
+            input.checked = true;
+            input.disabled = true;
+            label?.classList.add('locked');
+            input.setAttribute('aria-disabled', 'true');
+          } else {
+            input.disabled = false;
+            label?.classList.remove('locked');
+            input.removeAttribute('aria-disabled');
+          }
+        });
+      });
+    }
+
+    function bindExpenseSplitPayerControls() {
+      app.querySelectorAll('form[data-action="add-expense"], form[data-action="save-expense-edit"]').forEach((form) => {
+        const sync = () => syncExpenseSplitPayerControls(form);
+
+        form.querySelectorAll('input[name="payer"], input[name="paidBy"], input[name="splitType"]').forEach((input) => {
+          input.addEventListener('change', sync);
+        });
+
+        sync();
+      });
+    }
+
     function render() {
       ensureSelectedDate();
 
@@ -6508,6 +6556,7 @@
       app.innerHTML = html + quickStopActionSheetHtml() + quickFavoriteActionSheetHtml() + quickExpenseActionSheetHtml() + (["detail", "favorite-detail", "form"].includes(state.screen) ? "" : bottomNavHtml());
       syncActionSheetScrollLock();
       bindEvents();
+      bindExpenseSplitPayerControls();
       setupSwipeBack();
       scheduleMessageClear();
     }
@@ -7143,7 +7192,7 @@
             if (mode === "group" && item.groupId) {
               const newGroupItems = createExpenseRowsFromExpenseForm(data, formData, { groupId: item.groupId, createdAt: new Date().toISOString() });
               if (!newGroupItems.length) {
-                state.message = "整組花費資料不完整";
+                state.message = data.splitType === "custom" ? "自訂分攤至少要選一位其他分攤者" : "整組花費資料不完整";
                 render();
                 return;
               }
@@ -7205,7 +7254,7 @@
 
             const newExpenses = createExpenseRowsFromExpenseForm(data, formData);
             if (!newExpenses.length) {
-              state.message = "花費資料不完整";
+              state.message = data.splitType === "custom" ? "自訂分攤至少要選一位其他分攤者" : "花費資料不完整";
               render();
               return;
             }
@@ -7295,8 +7344,4 @@
           const start = (event) => {
             if (hasOpenActionSheet()) return;
             if (event.target.closest("button, a, input, select, textarea, label")) return;
-            if (event.pointerType === "mouse" && event.button !== 0) return;
-
-            const point = getPoint(event);
-            startX = point.clientX || 0;
-            s
+            i
