@@ -3472,7 +3472,8 @@
               category: item.category || "其他",
               payment: item.payment === "現金" ? "現金" : "刷卡",
               note: item.note || "",
-              createdAt: item.createdAt || new Date().toISOString()
+splitWith: Array.isArray(item.splitWith) && item.splitWith.length ? item.splitWith : [payer],
+createdAt: item.createdAt || new Date().toISOString()
             };
           })
           .filter((item) => item.amount > 0)
@@ -5238,6 +5239,17 @@
                 </label>
               </section>
 
+<section class="visual-block">
+  <div class="visual-label">平分對象</div>
+  <div class="visual-choice-row">
+    ${state.travelers.map((name) => `
+      <label class="visual-choice">
+        <input type="checkbox" name="splitWith" value="${attr(name)}" checked>
+        <span>${escapeHtml(name)}</span>
+      </label>
+    `).join("")}
+  </div>
+</section>
               <label class="form-label">備註
                 <input class="form-field" name="note" placeholder="可空白">
               </label>
@@ -5294,7 +5306,7 @@
                     </div>
                     <div class="expense-record-amount-simple">
                       ${escapeHtml(formatMoney(item.amount, item.currency))}
-                      <span>約 ${escapeHtml(formatMoney(Math.round(expenseToTwd(item)), "TWD"))}</span>
+                      ${item.currency === "TWD" ? "" : `<span>約 ${escapeHtml(formatMoney(Math.round(expenseToTwd(item)), "TWD"))}</span>`}
                     </div>
                   </article>
                 `).join("")}
@@ -5999,9 +6011,10 @@
         }
 
         if (action === "add-expense") {
-          element.addEventListener("submit", (event) => {
-            event.preventDefault();
-            const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+  element.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const data = Object.fromEntries(formData.entries());
             const amount = normalizeMoneyAmount(data.amount);
             if (!amount) {
               state.message = "金額格式不正確";
@@ -6018,7 +6031,8 @@
               category: data.category || "其他",
               payment: data.payment === "刷卡" ? "刷卡" : "現金",
               note: String(data.note || "").trim(),
-              createdAt: new Date().toISOString()
+splitWith: formData.getAll("splitWith").filter(Boolean),
+createdAt: new Date().toISOString()
             };
             state.expenses = [expense, ...state.expenses];
             saveExpenses();
