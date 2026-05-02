@@ -4163,58 +4163,39 @@
       return "個人花費";
     }
 
+    function formatTwdDollar(amount) {
+      const value = Math.round(Number(amount || 0));
+      return `$${value.toLocaleString("zh-TW", { maximumFractionDigits: 0 })}`;
+    }
+
     function buildExpenseCopyText(item, index = null) {
       const numberLabel = index === null ? "" : `${index + 1}. `;
       const title = compactExpenseTitle(item.title);
-      const category = item.category || "其他";
-      const amountTwd = formatMoney(Math.round(expenseToTwd(item)), "TWD");
-      const owner = item.owner || item.payer || "";
-      const paidBy = item.paidBy || item.payer || "";
-      return `${numberLabel}${formatExpenseShortDate(item.date)} ${title}（${category}）${amountTwd}｜${owner}｜${paidBy}付`;
+      const amountTwd = formatTwdDollar(expenseToTwd(item));
+      return `${numberLabel}${formatExpenseShortDate(item.date)} ${title} ${amountTwd}`;
     }
 
     function getExpenseExportList() {
       const scoped = getScopedExpenses();
       const ownerFilter = state.expenseOwnerFilter || "all";
-      if (ownerFilter === "all") return scoped;
+      if (ownerFilter === "all") return [];
       return scoped.filter((item) => (item.owner || item.payer) === ownerFilter);
     }
 
-    function sumExpensesByPaidBy(list, name) {
-      return sumExpenses(list.filter((item) => (item.paidBy || item.payer) === name));
-    }
-
     function buildExpenseSummaryText() {
+      const ownerFilter = state.expenseOwnerFilter || "all";
+      if (ownerFilter === "all") {
+        return "請先選擇單一人員，再匯出花費紀錄";
+      }
+
       const exportList = getExpenseExportList();
       const totals = sumExpenses(exportList);
-      const ownerFilter = state.expenseOwnerFilter || "all";
-      const names = ownerFilter === "all"
-        ? (state.travelers && state.travelers.length ? state.travelers : getStoredTravelers())
-        : [ownerFilter];
-      const travelerStats = getTravelerExpenseStats(exportList).filter((person) => names.includes(person.name));
-      const scopeText = state.moneyScope === "day" ? `今日 ${formatExpenseShortDate(todayISO())}` : "全旅程";
       const lines = [];
 
-      lines.push("【旅費摘要】");
-      lines.push(`${scopeText}｜${formatMoney(Math.round(totals.TWDConverted), "TWD")}`);
-      lines.push(`匯率：¥1 ≈ NT$${state.fxRate}`);
-      if (ownerFilter !== "all") lines.push(`篩選：${ownerFilter}`);
+      lines.push(`【${ownerFilter}｜花費紀錄】`);
+      lines.push(`合計：${formatTwdDollar(totals.TWDConverted)}`);
       lines.push("");
 
-      lines.push("【各人花費】");
-      travelerStats.forEach((person) => {
-        lines.push(`${person.name}｜${formatMoney(Math.round(person.TWDConverted), "TWD")}｜${person.count} 筆`);
-      });
-      lines.push("");
-
-      lines.push("【實際付款】");
-      names.forEach((name) => {
-        const paidTotals = sumExpensesByPaidBy(exportList, name);
-        lines.push(`${name}｜${formatMoney(Math.round(paidTotals.TWDConverted), "TWD")}`);
-      });
-      lines.push("");
-
-      lines.push("【明細】");
       if (!exportList.length) {
         lines.push("目前沒有花費紀錄");
       } else {
@@ -5995,7 +5976,6 @@
                     <label class="visual-choice"><input type="checkbox" name="splitWith" value="${attr(name)}" ${selectedOwners.includes(name) ? "checked" : ""}><span>${escapeHtml(name)}</span></label>
                   `).join("")}
                 </div>
-                <div class="visual-cash-hint">付款人會自動加入分攤，這裡只勾選其他一起分的人</div>
               </section>
             `}
             <section class="visual-secondary-fields">
@@ -6182,7 +6162,6 @@
                   <label class="visual-choice"><input type="radio" name="splitType" value="all"><span>全員平分</span></label>
                   <label class="visual-choice"><input type="radio" name="splitType" value="custom"><span>自訂分攤</span></label>
                 </div>
-                <div class="visual-cash-hint">預設個人花費，不會自動分給其他人</div>
               </section>
 
               <section class="visual-block split-custom-panel">
@@ -6195,7 +6174,6 @@
                     </label>
                   `).join("")}
                 </div>
-                <div class="visual-cash-hint">付款人會自動加入分攤，這裡只勾選其他一起分的人</div>
               </section>
 
               <section class="visual-block">
@@ -6259,7 +6237,7 @@
                 <h2 class="expense-panel-title">花費紀錄</h2>
                 <div class="expense-panel-sub">${escapeHtml(String(visibleExpenses.length))} 筆｜${escapeHtml(scopeLabel)}｜可依人篩選</div>
               </div>
-              <button class="mini-action" data-action="export-expense-summary" type="button">匯出</button>
+              ${(state.expenseOwnerFilter || "all") !== "all" ? `<button class="mini-action" data-action="export-expense-summary" type="button">匯出</button>` : ""}
             </div>
             <div class="expense-filter-rail">
               <button class="expense-filter-chip ${(state.expenseOwnerFilter || "all") === "all" ? "active" : ""}" data-action="set-expense-owner-filter" data-owner="all" type="button">全部</button>
@@ -7371,7 +7349,12 @@
 
         if (action === "export-expense-summary") {
           element.addEventListener("click", () => {
-            copyTextToClipboard(buildExpenseSummaryText(), "花費摘要已複製");
+            if ((state.expenseOwnerFilter || "all") === "all") {
+              state.message = "請先選擇單一人員，再匯出花費紀錄";
+              render();
+              return;
+            }
+            copyTextToClipboard(buildExpenseSummaryText(), "花費紀錄已複製");
           });
         }
 
