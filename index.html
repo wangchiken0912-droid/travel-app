@@ -3660,6 +3660,31 @@
       "重要公告": "globalNotice",
       "全局公告": "globalNotice",
       "更新時間": "updatedAt",
+      "建立時間": "createdAt",
+      "金額": "amount",
+      "幣別": "currency",
+      "付款人": "paidBy",
+      "實際付款人": "paidBy",
+      "歸屬人": "owner",
+      "算誰": "owner",
+      "付款方式": "payment",
+      "分攤方式": "splitType",
+      "分攤對象": "splitWith",
+      "分攤者": "splitWith",
+      "群組ID": "groupId",
+      "群組人數": "groupSize",
+      "原始金額": "originalAmount",
+      "amount": "amount",
+      "currency": "currency",
+      "paidBy": "paidBy",
+      "owner": "owner",
+      "payment": "payment",
+      "splitType": "splitType",
+      "splitWith": "splitWith",
+      "groupId": "groupId",
+      "groupSize": "groupSize",
+      "originalAmount": "originalAmount",
+      "createdAt": "createdAt",
       "每日提醒": "dailyNotice",
       "緊急聯絡名稱": "emergencyName",
       "緊急聯絡電話": "emergencyPhone",
@@ -3695,7 +3720,12 @@
       "候選": "favorite",
       "候選地點": "favorite",
       "想去": "favorite",
-      "備選": "favorite"
+      "備選": "favorite",
+      "花費": "expense",
+      "消費": "expense",
+      "支出": "expense",
+      "費用": "expense",
+      "expense": "expense"
     };
 
     const SAMPLE_ROWS = [
@@ -3845,6 +3875,61 @@
       } catch (error) {
         return [];
       }
+    }
+
+    function parseSplitWithValue(value, fallback = []) {
+      const text = String(value || "").trim();
+      if (!text) return fallback;
+      return text
+        .split(/[、,，;；\n]+/)
+        .map((name) => normalizePayerName(name))
+        .filter(Boolean);
+    }
+
+    function normalizeExpenseFromRow(row) {
+      const normalized = normalizeRow(row);
+      if (normalized.type !== "expense" || !isVisible(normalized)) return null;
+
+      const legacyPayer = normalizePayerName(normalized.payer || normalized.person || normalized.owner || normalized.paidBy || FIXED_TRAVELERS[0]);
+      const owner = normalizePayerName(normalized.owner || legacyPayer || FIXED_TRAVELERS[0]);
+      const paidBy = normalizePayerName(normalized.paidBy || legacyPayer || owner || FIXED_TRAVELERS[0]);
+      const splitType = ["self", "all", "custom"].includes(normalized.splitType) ? normalized.splitType : "self";
+      const amount = Number(String(normalized.amount || "0").replace(/,/g, ""));
+      const originalAmount = Number(String(normalized.originalAmount || normalized.amount || "0").replace(/,/g, ""));
+      const splitWith = parseSplitWithValue(normalized.splitWith, [owner]);
+
+      return {
+        id: normalized.id || `expense_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        groupId: normalized.groupId || null,
+        groupSize: Number(normalized.groupSize || splitWith.length || 1),
+        date: normalized.date || todayISO(),
+        title: normalized.title || "未命名花費",
+        amount: Number.isFinite(amount) ? Math.max(0, Math.round(amount)) : 0,
+        originalAmount: Number.isFinite(originalAmount) ? Math.max(0, Math.round(originalAmount)) : 0,
+        currency: normalized.currency === "TWD" ? "TWD" : "JPY",
+        paidBy,
+        owner,
+        payer: owner,
+        category: normalized.category || "其他",
+        payment: normalized.payment === "現金" ? "現金" : "刷卡",
+        note: normalized.note || normalized.notice || "",
+        splitType,
+        splitWith: splitWith.length ? splitWith : [owner],
+        createdAt: normalized.createdAt || normalized.updatedAt || new Date().toISOString()
+      };
+    }
+
+    function getExpensesFromRows(rows) {
+      return (Array.isArray(rows) ? rows : [])
+        .map(normalizeExpenseFromRow)
+        .filter((item) => item && item.amount > 0)
+        .sort((a, b) => `${b.date}_${b.createdAt}`.localeCompare(`${a.date}_${a.createdAt}`));
+    }
+
+    function syncExpensesFromRows(rows) {
+      const sheetExpenses = getExpensesFromRows(rows);
+      state.expenses = sheetExpenses;
+      saveExpenses();
     }
 
     function saveExpenses() {
@@ -5110,8 +5195,32 @@
       };
     }
 
+    function normalizeExpenseWriteData(expense) {
+      return {
+        ID: expense.id || "",
+        類型: "花費",
+        日期: expense.date || todayISO(),
+        標題: expense.title || "未命名花費",
+        金額: String(Math.round(Number(expense.amount || 0))),
+        幣別: expense.currency === "TWD" ? "TWD" : "JPY",
+        付款人: expense.paidBy || expense.payer || "",
+        歸屬人: expense.owner || expense.payer || "",
+        分類: expense.category || "其他",
+        付款方式: expense.payment || "現金",
+        備註: expense.note || "",
+        分攤方式: expense.splitType || "self",
+        分攤對象: Array.isArray(expense.splitWith) ? expense.splitWith.join("、") : String(expense.splitWith || ""),
+        群組ID: expense.groupId || "",
+        群組人數: String(expense.groupSize || (Array.isArray(expense.splitWith) ? expense.splitWith.length : 1) || 1),
+        原始金額: String(Math.round(Number(expense.originalAmount || expense.amount || 0))),
+        建立時間: expense.createdAt || new Date().toISOString(),
+        更新時間: new Date().toISOString().slice(0, 19).replace("T", " "),
+        顯示: "TRUE"
+      };
+    }
+
     function makeTempId(type) {
-      const prefix = type === "收藏" ? "FAV" : "TRIP";
+      const prefix = type === "收藏" ? "FAV" : type === "花費" ? "EXP" : "TRIP";
       return `${prefix}-LOCAL-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
     }
 
@@ -5282,6 +5391,49 @@
       } catch (error) {
         state.message = "同步失敗";
         state.syncStatus = "已保留在本機暫存，請網路穩定後再試";
+        render();
+      }
+    }
+
+    async function postExpenseChange(action, expense) {
+      if (!isWriteReady()) return;
+      const data = action === "delete"
+        ? { ID: expense.id || "", 類型: "花費" }
+        : normalizeExpenseWriteData(expense);
+
+      await fetch(WRITE_WEB_APP_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(actionPayload(action, data))
+      });
+    }
+
+    async function syncExpenseChanges(changes, successMessage = "花費已同步到 Google Sheet") {
+      if (!Array.isArray(changes) || !changes.length) return;
+      if (!isWriteReady()) {
+        state.syncStatus = "尚未設定 Google Apps Script 寫入端，花費暫存在本機";
+        render();
+        return;
+      }
+
+      state.syncStatus = "正在同步花費到 Google Sheet";
+      render();
+
+      try {
+        for (const change of changes) {
+          const action = change.action || "create";
+          const items = Array.isArray(change.items) ? change.items : [change.item].filter(Boolean);
+          for (const item of items) {
+            await postExpenseChange(action, item);
+          }
+        }
+
+        state.syncStatus = successMessage;
+        render();
+        window.setTimeout(() => loadRows(true), 2200);
+      } catch (error) {
+        state.syncStatus = "花費同步失敗，已先保留在本機，請網路穩定後再試";
         render();
       }
     }
@@ -6676,6 +6828,7 @@
             state.quickExpenseActionId = "";
             state.expenses = state.expenses.filter((expense) => expense.id !== id);
             saveExpenses();
+            syncExpenseChanges([{ action: "delete", item }], "花費刪除已同步到 Google Sheet");
             state.message = "已刪除花費紀錄";
             render();
           });
@@ -6994,17 +7147,23 @@
                 render();
                 return;
               }
+              const oldGroupItems = state.expenses.filter((expense) => expense.groupId === item.groupId);
               state.expenses = [
                 ...newGroupItems,
                 ...state.expenses.filter((expense) => expense.groupId !== item.groupId)
               ];
+              syncExpenseChanges([
+                { action: "delete", items: oldGroupItems },
+                { action: "create", items: newGroupItems }
+              ], "整組花費已同步到 Google Sheet");
               state.message = `已更新整組花費，共 ${newGroupItems.length} 筆`;
             } else {
               const owner = normalizePayerName(data.owner || item.owner || item.payer);
               const paidBy = normalizePayerName(data.paidBy || item.paidBy || item.payer);
+              let updatedExpense = null;
               state.expenses = state.expenses.map((expense) => {
                 if (expense.id !== id) return expense;
-                return {
+                updatedExpense = {
                   ...expense,
                   date: data.date || todayISO(),
                   title: String(data.title || "").trim() || "未命名花費",
@@ -7018,7 +7177,9 @@
                   payment: data.payment === "刷卡" ? "刷卡" : "現金",
                   note: String(data.note || "").trim()
                 };
+                return updatedExpense;
               });
+              if (updatedExpense) syncExpenseChanges([{ action: "update", item: updatedExpense }], "花費已同步到 Google Sheet");
               state.message = "已更新這筆花費";
             }
 
@@ -7051,6 +7212,7 @@
 
             state.expenses = [...newExpenses, ...state.expenses];
             saveExpenses();
+            syncExpenseChanges([{ action: "create", items: newExpenses }], "花費已同步到 Google Sheet");
             state.message = newExpenses.length > 1 ? `已新增 ${newExpenses.length} 筆分攤花費` : "已新增花費紀錄";
             render();
           });
@@ -7066,6 +7228,7 @@
             state.quickExpenseActionId = "";
             state.expenses = state.expenses.filter((expense) => expense.id !== id);
             saveExpenses();
+            syncExpenseChanges([{ action: "delete", item }], "花費刪除已同步到 Google Sheet");
             state.message = "已刪除花費紀錄";
             render();
           });
@@ -7097,233 +7260,4 @@
           let startX = 0;
           let startY = 0;
           let didOpen = false;
-          let cancelled = false;
-          let activePointerId = null;
-
-          const clear = () => {
-            if (timer) window.clearTimeout(timer);
-            timer = null;
-          };
-
-          const getPoint = (event) => {
-            if (event.touches && event.touches[0]) return event.touches[0];
-            if (event.changedTouches && event.changedTouches[0]) return event.changedTouches[0];
-            return event;
-          };
-
-          const cancel = () => {
-            cancelled = true;
-            clear();
-          };
-
-          const openFromLongPress = () => {
-            if (cancelled) return;
-            const id = getId(element);
-            if (!id) return;
-
-            didOpen = true;
-            state.longPressIgnoreClickUntil = Date.now() + 1200;
-            state.actionSheetBlockTapUntil = Date.now() + ACTION_SHEET_READY_DELAY;
-            if (navigator.vibrate) navigator.vibrate(8);
-            openMenu(id);
-            render();
-          };
-
-          const start = (event) => {
-            if (hasOpenActionSheet()) return;
-            if (event.target.closest("button, a, input, select, textarea, label")) return;
-            if (event.pointerType === "mouse" && event.button !== 0) return;
-
-            const point = getPoint(event);
-            startX = point.clientX || 0;
-            startY = point.clientY || 0;
-            didOpen = false;
-            cancelled = false;
-            activePointerId = event.pointerId || null;
-            clear();
-            timer = window.setTimeout(openFromLongPress, LONG_PRESS_DELAY);
-          };
-
-          const move = (event) => {
-            if (!timer || cancelled) return;
-            if (activePointerId !== null && event.pointerId && event.pointerId !== activePointerId) return;
-
-            const point = getPoint(event);
-            const dx = Math.abs((point.clientX || 0) - startX);
-            const dy = Math.abs((point.clientY || 0) - startY);
-            if (dx > LONG_PRESS_MOVE_TOLERANCE || dy > LONG_PRESS_MOVE_TOLERANCE) {
-              cancel();
-            }
-          };
-
-          const end = (event) => {
-            clear();
-            activePointerId = null;
-
-            if (didOpen) {
-              state.longPressIgnoreClickUntil = Date.now() + 900;
-              state.actionSheetBlockTapUntil = Math.max(Number(state.actionSheetBlockTapUntil || 0), Date.now() + ACTION_SHEET_READY_DELAY);
-              event.preventDefault();
-              event.stopPropagation();
-              if (event.stopImmediatePropagation) event.stopImmediatePropagation();
-            }
-          };
-
-          if (window.PointerEvent) {
-            element.addEventListener("pointerdown", start);
-            element.addEventListener("pointermove", move);
-            element.addEventListener("pointerup", end);
-            element.addEventListener("pointercancel", cancel);
-            element.addEventListener("pointerleave", cancel);
-          } else {
-            element.addEventListener("touchstart", start, { passive: true });
-            element.addEventListener("touchmove", move, { passive: true });
-            element.addEventListener("touchend", end, { passive: false });
-            element.addEventListener("touchcancel", cancel, { passive: true });
-            element.addEventListener("mousedown", start);
-            element.addEventListener("mousemove", move);
-            element.addEventListener("mouseup", end);
-            element.addEventListener("mouseleave", cancel);
-          }
-        });
-      };
-
-      bindLongPressMenu("[data-longpress-stop-id]",
-        (element) => element.dataset.longpressStopId || "",
-        (id) => {
-          state.quickFavoriteActionId = "";
-          state.quickExpenseActionId = "";
-          state.quickStopActionId = id;
-        }
-      );
-
-      bindLongPressMenu("[data-longpress-favorite-id]",
-        (element) => element.dataset.longpressFavoriteId || "",
-        (id) => {
-          state.quickStopActionId = "";
-          state.quickExpenseActionId = "";
-          state.quickFavoriteActionId = id;
-        }
-      );
-
-      bindLongPressMenu("[data-longpress-expense-id]",
-        (element) => element.dataset.longpressExpenseId || "",
-        (id) => {
-          state.quickStopActionId = "";
-          state.quickFavoriteActionId = "";
-          state.quickExpenseActionId = id;
-        }
-      );
-
-      if (!window.__bloomLongPressGuardsInstalled) {
-        window.__bloomLongPressGuardsInstalled = true;
-
-        const blockFreshActionSheetInteraction = (event) => {
-          if (!hasOpenActionSheet()) return;
-          if (Date.now() >= Number(state.actionSheetBlockTapUntil || 0)) return;
-          if (!event.target.closest(".action-sheet-backdrop")) return;
-          event.preventDefault();
-          event.stopPropagation();
-          if (event.stopImmediatePropagation) event.stopImmediatePropagation();
-        };
-
-        ["pointerup", "touchend", "mouseup", "click"].forEach((eventName) => {
-          document.addEventListener(eventName, blockFreshActionSheetInteraction, { capture: true, passive: false });
-        });
-      }
-
-      if (!window.__bloomSelectionGuardInstalled) {
-        window.__bloomSelectionGuardInstalled = true;
-
-        document.addEventListener("contextmenu", (event) => {
-          if (event.target.closest(".detail-hero, .detail-body")) return;
-          if (event.target.closest(".action-sheet, [data-longpress-stop-id], [data-longpress-favorite-id], [data-longpress-expense-id]")) {
-            event.preventDefault();
-          }
-        });
-
-        document.addEventListener("selectstart", (event) => {
-          if (event.target.closest(".detail-hero, .detail-body")) return;
-          if (event.target.closest(".action-sheet, [data-longpress-stop-id], [data-longpress-favorite-id], [data-longpress-expense-id]")) {
-            event.preventDefault();
-          }
-        });
-      }
-
-      app.querySelectorAll(".expense-settings-pop").forEach((details) => {
-        details.addEventListener("toggle", () => {
-          state.moneySettingsOpen = details.open;
-        });
-      });
-    }
-
-    async function loadRows(force = false) {
-      state.loading = true;
-      state.message = force ? "正在同步 Google Sheet 最新資料" : "";
-      render();
-
-      try {
-        const controller = new AbortController();
-        const timeout = window.setTimeout(() => controller.abort(), 12000);
-        const url = force ? `${SHEET_CSV_URL}${SHEET_CSV_URL.includes("?") ? "&" : "?"}_=${Date.now()}` : SHEET_CSV_URL;
-
-        const response = await fetch(url, { cache: "no-store", signal: controller.signal });
-        window.clearTimeout(timeout);
-
-        if (!response.ok) throw new Error("資料讀取失敗");
-
-        const text = await response.text();
-        const parsed = parseCSV(text);
-        if (!parsed.length) throw new Error("雲端表格沒有可讀資料");
-
-        state.rows = parsed;
-        localStorage.setItem("trip-html:google-sheet-live-v1", JSON.stringify(parsed));
-        state.message = force ? "已同步最新資料" : "";
-      } catch (error) {
-        const cached = localStorage.getItem("trip-html:google-sheet-live-v1");
-        if (cached) {
-          state.rows = JSON.parse(cached).map(normalizeRow);
-          state.message = "目前顯示上次儲存的行程";
-        } else {
-          state.rows = SAMPLE_ROWS;
-          state.message = "目前暫時顯示內建行程，雲端資料連線後會自動更新";
-        }
-      } finally {
-        state.loading = false;
-        ensureSelectedDate();
-        render();
-
-        if (state.message === "已同步最新資料") {
-          setTimeout(() => {
-            if (state.message === "已同步最新資料") {
-              state.message = "";
-              render();
-            }
-          }, 1800);
-        }
-      }
-    }
-
-    document.addEventListener("touchmove", (event) => {
-      if (!document.body.classList.contains("action-sheet-open")) return;
-      if (!event.target.closest(".action-sheet")) {
-        event.preventDefault();
-      }
-    }, { passive: false });
-
-    ["pointerdown", "pointerup", "touchstart", "touchend", "mousedown", "mouseup", "click"].forEach((eventName) => {
-      app.addEventListener(eventName, blockSearchImeGhostTap, true);
-    });
-
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./sw.js").catch(() => {});
-      });
-    }
-
-    render();
-    loadRows(false);
-    maybeAutoUpdateFxRate();
-  </script>
-</body>
-</html>
+          le
