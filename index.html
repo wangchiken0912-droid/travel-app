@@ -5770,7 +5770,7 @@
       const owners = splitType === "all"
         ? [...state.travelers]
         : splitType === "custom"
-          ? customSplitWith
+          ? [paidBy, ...customSplitWith]
           : [normalizePayerName(data.owner || paidBy)];
       const safeOwners = [...new Set(owners.length ? owners : [paidBy])];
       const groupId = splitType === "self" ? null : (options.groupId || `expense_group_${Date.now()}_${Math.random().toString(16).slice(2)}`);
@@ -5896,7 +5896,7 @@
                     <label class="visual-choice"><input type="checkbox" name="splitWith" value="${attr(name)}" ${selectedOwners.includes(name) ? "checked" : ""}><span>${escapeHtml(name)}</span></label>
                   `).join("")}
                 </div>
-                <div class="visual-cash-hint">如果選自訂分攤，至少保留一位分攤者</div>
+                <div class="visual-cash-hint">付款人會自動加入分攤，這裡只需要勾選其他要一起分的人</div>
               </section>
             `}
             <section class="visual-secondary-fields">
@@ -6096,7 +6096,7 @@
                     </label>
                   `).join("")}
                 </div>
-                <div class="visual-cash-hint">只有選「自訂分攤」時才會使用這裡</div>
+                <div class="visual-cash-hint">付款人會自動加入分攤，這裡只需要勾選其他要一起分的人</div>
               </section>
 
               <section class="visual-block">
@@ -7420,6 +7420,48 @@
       });
     }
 
+    async function fetchRowsFromWebApp(force = false, signal) {
+      if (!WRITE_WEB_APP_URL || !WRITE_WEB_APP_URL.trim()) {
+        throw new Error("尚未設定 Apps Script 讀取網址");
+      }
+
+      const separator = WRITE_WEB_APP_URL.includes("?") ? "&" : "?";
+      const cacheBust = force ? `&_=${Date.now()}` : "";
+      const url = `${WRITE_WEB_APP_URL}${separator}action=rows${cacheBust}`;
+      const response = await fetch(url, { cache: "no-store", signal });
+
+      if (!response.ok) {
+        throw new Error("Apps Script 資料讀取失敗");
+      }
+
+      const data = await response.json();
+      const rows = Array.isArray(data) ? data : data.rows;
+
+      if (!data || data.ok === false || !Array.isArray(rows)) {
+        throw new Error(data && data.error ? String(data.error) : "Apps Script 回傳格式不正確");
+      }
+
+      return rows.map(normalizeRow).filter(isVisible);
+    }
+
+    async function fetchRowsFromCsv(force = false, signal) {
+      const url = force ? `${SHEET_CSV_URL}${SHEET_CSV_URL.includes("?") ? "&" : "?"}_=${Date.now()}` : SHEET_CSV_URL;
+      const response = await fetch(url, { cache: "no-store", signal });
+
+      if (!response.ok) {
+        throw new Error("CSV 資料讀取失敗");
+      }
+
+      const text = await response.text();
+      const parsed = parseCSV(text);
+
+      if (!parsed.length) {
+        throw new Error("雲端表格沒有可讀資料");
+      }
+
+      return parsed.map(normalizeRow).filter(isVisible);
+    }
+
     async function loadRows(force = false) {
       state.loading = true;
       state.message = force ? "正在同步 Google Sheet 最新資料" : "";
@@ -7428,16 +7470,15 @@
       try {
         const controller = new AbortController();
         const timeout = window.setTimeout(() => controller.abort(), 12000);
-        const url = force ? `${SHEET_CSV_URL}${SHEET_CSV_URL.includes("?") ? "&" : "?"}_=${Date.now()}` : SHEET_CSV_URL;
+        let parsed = [];
 
-        const response = await fetch(url, { cache: "no-store", signal: controller.signal });
+        try {
+          parsed = await fetchRowsFromWebApp(force, controller.signal);
+        } catch (webAppError) {
+          parsed = await fetchRowsFromCsv(force, controller.signal);
+        }
+
         window.clearTimeout(timeout);
-
-        if (!response.ok) throw new Error("資料讀取失敗");
-
-        const text = await response.text();
-        const parsed = parseCSV(text);
-        if (!parsed.length) throw new Error("雲端表格沒有可讀資料");
 
         state.rows = parsed;
         localStorage.setItem("trip-html:google-sheet-live-v1", JSON.stringify(parsed));
