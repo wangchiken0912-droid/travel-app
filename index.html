@@ -1541,9 +1541,16 @@
       flex-wrap: wrap;
     }
 
-    .mini-action[disabled] {
+    .mini-action[disabled],
+    button[disabled],
+    button[aria-disabled="true"] {
       opacity: 0.55;
       cursor: not-allowed;
+    }
+
+    button[disabled]:active,
+    button[aria-disabled="true"]:active {
+      transform: none !important;
     }
 
 
@@ -3670,9 +3677,12 @@
     "use strict";
 
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTYQJ1dR2xlFzx9oAimcCEZhnJvS4-_-fJ9bwgDV3SmIhlRsbcVVboF9qXwqvTVTif9rQOd0oNxZpX1/pub?output=csv";
-    const WRITE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxZklmJ4kF8lv9JBNzDuFLOjSWtqomrZ0aM2ekwah9DXBB9L1mXQhZa60jIp0y2kMp0/exec";
-    const WRITE_TOKEN = "dreamtrip";
-    const EDIT_CODE = "0912";
+    const WRITE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw04w4Mi_bOY2INFbvUdHuyPWcDxnvHmD4eRGcxE4n1Bsl9fhE_RT4HLjKRg096O9La9Q/exec";
+    // 可靠同步版：前端不再放固定 WRITE_TOKEN / EDIT_CODE
+    // 真正的寫入密碼請放在 Apps Script 的 Script Properties 裡
+    const WRITE_PASSCODE_SESSION_KEY = "trip-html:write-passcode-v2";
+    const PENDING_WRITES_STORAGE_KEY = "trip-html:pending-writes-v1";
+    const WRITE_CORS_FALLBACK_TO_NO_CORS = true;
     const EDIT_MODE_KEY = "trip-html:edit-mode-v1";
     const EXPENSE_STORAGE_KEY = "trip-html:expenses-v1";
     const CASH_WALLET_STORAGE_KEY = "trip-html:cash-wallet-v1";
@@ -3830,6 +3840,11 @@
       formType: "",
       formId: "",
       formReturnScreen: "",
+      innerReturnScreen: "",
+      innerReturnScrollY: 0,
+      writeSyncing: false,
+      writeSyncMessage: "",
+      pendingWrites: getStoredPendingWrites(),
       favorites: getStoredFavoriteIds(),
       expenses: getStoredExpenses(),
       cashWallet: getStoredCashWallet(),
@@ -5058,24 +5073,25 @@
 
     function requireEditMode() {
       if (state.editMode) return true;
-      const code = window.prompt("請輸入共用編輯碼");
-      if (code === EDIT_CODE) {
+
+      const passcode = ensureWritePasscode("請輸入同步寫入碼");
+      if (passcode) {
         state.editMode = true;
         localStorage.setItem(EDIT_MODE_KEY, "ON");
         state.message = "已開啟編輯模式";
         render();
         return true;
       }
-      if (code !== null) {
-        state.message = "編輯碼錯誤";
-        render();
-      }
+
+      state.message = "未輸入同步寫入碼";
+      render();
       return false;
     }
 
     function closeEditMode() {
       state.editMode = false;
       localStorage.removeItem(EDIT_MODE_KEY);
+      clearWritePasscode();
       state.message = "已關閉編輯模式";
       render();
     }
@@ -5134,6 +5150,224 @@
         state.toastVariant = "";
         render();
       }, duration);
+    }
+
+    function restoreScrollPosition(top) {
+      const targetTop = Math.max(0, Number(top) || 0);
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: targetTop, behavior: "auto" });
+        window.setTimeout(() => {
+          window.scrollTo({ top: targetTop, behavior: "auto" });
+        }, 80);
+      });
+    }
+
+    function rememberInnerReturnPosition() {
+      state.innerReturnScreen = ["detail", "favorite-detail", "form"].includes(state.screen)
+        ? (state.previousScreen || "today")
+        : (state.screen || "today");
+      state.innerReturnScrollY = window.scrollY || 0;
+    }
+
+    function resetInnerReturnPosition() {
+      state.innerReturnScreen = "";
+      state.innerReturnScrollY = 0;
+    }
+
+    function guardWriteAction() {
+      if (!state.writeSyncing) return false;
+      showToast("同步中，請稍候");
+      return true;
+    }
+
+    function startWriteSync(message = "同步中") {
+      state.writeSyncing = true;
+      state.writeSyncMessage = message;
+      showToast(message);
+    }
+
+    function finishWriteSync() {
+      state.writeSyncing = false;
+      state.writeSyncMessage = "";
+      render();
+    }
+
+    function writeDisabledAttr() {
+      return state.writeSyncing ? `disabled aria-disabled="true"` : "";
+    }
+
+    function writeSubmitLabel(defaultLabel) {
+      return state.writeSyncing ? "同步中" : defaultLabel;
+    }
+
+    function makeRequestId(prefix = "REQ") {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return `${prefix}-${window.crypto.randomUUID()}`;
+      }
+      return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    }
+
+    function getStoredWritePasscode() {
+      try {
+        return sessionStorage.getItem(WRITE_PASSCODE_SESSION_KEY) || "";
+      } catch (error) {
+        return "";
+      }
+    }
+
+    function setStoredWritePasscode(passcode) {
+      try {
+        if (passcode) {
+          sessionStorage.setItem(WRITE_PASSCODE_SESSION_KEY, passcode);
+        } else {
+          sessionStorage.removeItem(WRITE_PASSCODE_SESSION_KEY);
+        }
+      } catch (error) {}
+    }
+
+    function ensureWritePasscode(promptText = "請輸入同步寫入碼") {
+      const existing = getStoredWritePasscode();
+      if (existing) return existing;
+
+      const input = window.prompt(promptText);
+      const passcode = String(input || "").trim();
+      if (!passcode) return "";
+
+      setStoredWritePasscode(passcode);
+      return passcode;
+    }
+
+    function clearWritePasscode() {
+      setStoredWritePasscode("");
+    }
+
+    function getStoredPendingWrites() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(PENDING_WRITES_STORAGE_KEY) || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function savePendingWrites() {
+      try {
+        localStorage.setItem(PENDING_WRITES_STORAGE_KEY, JSON.stringify(state.pendingWrites || []));
+      } catch (error) {}
+    }
+
+    function sanitizePendingPayload(payload) {
+      const cloned = { ...(payload || {}) };
+      delete cloned.passcode;
+      delete cloned.token;
+      return cloned;
+    }
+
+    function enqueuePendingWrite(payload, reason = "") {
+      const cleanPayload = sanitizePendingPayload(payload);
+      const requestId = cleanPayload.requestId || makeRequestId("REQ");
+      const pendingItem = {
+        requestId,
+        payload: { ...cleanPayload, requestId },
+        status: "pending",
+        reason: String(reason || ""),
+        retryCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      const existing = Array.isArray(state.pendingWrites) ? state.pendingWrites : [];
+      state.pendingWrites = [
+        ...existing.filter((item) => item.requestId !== requestId),
+        pendingItem
+      ].slice(-80);
+      savePendingWrites();
+    }
+
+    function removePendingWrite(requestId) {
+      if (!requestId) return;
+      state.pendingWrites = (state.pendingWrites || []).filter((item) => item.requestId !== requestId);
+      savePendingWrites();
+    }
+
+    function parseWriteResponseText(text) {
+      if (!text) return { ok: true };
+      try {
+        return JSON.parse(text);
+      } catch (error) {
+        return { ok: true, raw: text };
+      }
+    }
+
+    async function postWritePayload(payload, options = {}) {
+      if (!isWriteReady()) {
+        throw new Error("write url missing");
+      }
+
+      const requestId = payload.requestId || makeRequestId("REQ");
+      const passcode = ensureWritePasscode();
+      if (!passcode) {
+        throw new Error("write passcode missing");
+      }
+
+      const safePayload = {
+        ...payload,
+        requestId,
+        passcode,
+        clientUpdatedAt: new Date().toISOString()
+      };
+
+      try {
+        const response = await fetch(WRITE_WEB_APP_URL, {
+          method: "POST",
+          mode: "cors",
+          redirect: "follow",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(safePayload)
+        });
+
+        const responseText = await response.text();
+        const responseData = parseWriteResponseText(responseText);
+
+        if (!response.ok || responseData.ok === false) {
+          const message = responseData.error || responseData.message || `HTTP ${response.status}`;
+          throw new Error(message);
+        }
+
+        removePendingWrite(requestId);
+        return { ok: true, confirmed: true, requestId, data: responseData };
+      } catch (error) {
+        if (!WRITE_CORS_FALLBACK_TO_NO_CORS) {
+          enqueuePendingWrite(safePayload, error.message || "cors failed");
+          throw error;
+        }
+
+        try {
+          await fetch(WRITE_WEB_APP_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(safePayload)
+          });
+
+          enqueuePendingWrite(safePayload, error.message || "fallback no-cors");
+          return { ok: true, confirmed: false, requestId, error };
+        } catch (fallbackError) {
+          enqueuePendingWrite(safePayload, fallbackError.message || "fallback failed");
+          throw fallbackError;
+        }
+      }
+    }
+
+    function syncSuccessMessage(defaultMessage, result) {
+      if (result && result.confirmed === false) {
+        return "已送出，稍後重新讀取確認";
+      }
+      return defaultMessage || "已同步";
+    }
+
+    function schedulePostWriteRefresh() {
+      window.setTimeout(() => loadRows(true), 2200);
     }
 
     function scheduleMessageClear() {
@@ -5325,7 +5559,7 @@
 
     function actionPayload(action, data) {
       return {
-        token: WRITE_TOKEN,
+        requestId: makeRequestId(action === "delete" ? "DEL" : action === "update" ? "UPD" : "NEW"),
         action,
         data
       };
@@ -5458,6 +5692,8 @@
     }
 
     async function sendConvertFavorite(payload) {
+      if (guardWriteAction()) return;
+
       const place = findFavoriteById(state.formId);
       if (!place) {
         state.message = "找不到這筆收藏";
@@ -5468,103 +5704,103 @@
       const itineraryPayload = { ...payload, id: "", type: "行程" };
       const markedFavorite = markFavoriteAsJoined(place);
 
-      applyOptimisticChange("create", itineraryPayload);
-      applyOptimisticChange("update", markedFavorite);
-      returnAfterWrite(itineraryPayload);
-      render();
-
-      if (!isWriteReady()) {
-        showToast("同步失敗，稍後再試", "error", 2600);
-        return;
-      }
-
+      startWriteSync("同步中");
       try {
-        await fetch(WRITE_WEB_APP_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(actionPayload("create", normalizeWriteData(itineraryPayload)))
-        });
+        applyOptimisticChange("create", itineraryPayload);
+        applyOptimisticChange("update", markedFavorite);
+        returnAfterWrite(itineraryPayload);
+        render();
 
-        await fetch(WRITE_WEB_APP_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(actionPayload("update", normalizeWriteData(markedFavorite)))
-        });
+        if (!isWriteReady()) {
+          showToast("同步失敗，稍後再試", "error", 2600);
+          return;
+        }
 
-        showToast("已同步");
-        window.setTimeout(() => loadRows(true), 2200);
+        const createResult = await postWritePayload(actionPayload("create", normalizeWriteData(itineraryPayload)));
+        const updateResult = await postWritePayload(actionPayload("update", normalizeWriteData(markedFavorite)));
+
+        showToast(
+          createResult.confirmed === false || updateResult.confirmed === false
+            ? "已送出，稍後重新讀取確認"
+            : "已同步"
+        );
+        schedulePostWriteRefresh();
       } catch (error) {
-        showToast("同步失敗，稍後再試", "error", 2600);
+        showToast("同步失敗，已保留待重試", "error", 2600);
+      } finally {
+        finishWriteSync();
       }
     }
 
     async function sendWrite(action, data) {
+      if (guardWriteAction()) return;
+
       if (action === "create" && !data.id && !data.ID) {
         data = { ...data, id: makeTempId(data.type || data.類型 || "行程") };
       }
 
-      applyOptimisticChange(action, data);
-      returnAfterWrite(data);
-      render();
-
-      if (!isWriteReady()) {
-        showToast("同步失敗，稍後再試", "error", 2600);
-        return;
-      }
-
-      const payload = actionPayload(action, normalizeWriteData(data));
-
+      startWriteSync("同步中");
       try {
-        await fetch(WRITE_WEB_APP_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(payload)
-        });
+        applyOptimisticChange(action, data);
+        returnAfterWrite(data);
+        render();
 
-        showToast(action === "delete" ? "已刪除" : "已同步");
-        window.setTimeout(() => loadRows(true), 2200);
+        if (!isWriteReady()) {
+          showToast("同步失敗，稍後再試", "error", 2600);
+          return;
+        }
+
+        const payload = actionPayload(action, normalizeWriteData(data));
+        const result = await postWritePayload(payload);
+
+        showToast(syncSuccessMessage(action === "delete" ? "已刪除" : "已同步", result));
+        schedulePostWriteRefresh();
       } catch (error) {
-        showToast("同步失敗，稍後再試", "error", 2600);
+        showToast("同步失敗，已保留待重試", "error", 2600);
+      } finally {
+        finishWriteSync();
       }
     }
 
     async function postExpenseChange(action, expense) {
-      if (!isWriteReady()) return;
+      if (!isWriteReady()) throw new Error("write url missing");
       const data = action === "delete"
         ? { ID: expense.id || "", 類型: "花費" }
         : normalizeExpenseWriteData(expense);
 
-      await fetch(WRITE_WEB_APP_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(actionPayload(action, data))
-      });
+      return postWritePayload(actionPayload(action, data));
     }
 
     async function syncExpenseChanges(changes, successMessage = "已同步") {
       if (!Array.isArray(changes) || !changes.length) return;
-      if (!isWriteReady()) {
-        showToast("同步失敗，稍後再試", "error", 2600);
-        return;
-      }
+      if (guardWriteAction()) return;
 
+      startWriteSync("同步中");
       try {
+        if (!isWriteReady()) {
+          showToast("同步失敗，稍後再試", "error", 2600);
+          return;
+        }
+
+        let hasUnconfirmedWrite = false;
+
         for (const change of changes) {
           const action = change.action || "create";
           const items = Array.isArray(change.items) ? change.items : [change.item].filter(Boolean);
           for (const item of items) {
-            await postExpenseChange(action, item);
+            const result = await postExpenseChange(action, item);
+            if (result && result.confirmed === false) {
+              hasUnconfirmedWrite = true;
+            }
           }
         }
 
-        showToast(successMessage || "已同步");
-        window.setTimeout(() => loadRows(true), 2200);
+        showToast(hasUnconfirmedWrite ? "已送出，稍後重新讀取確認" : (successMessage || "已同步"));
+        schedulePostWriteRefresh();
       } catch (error) {
-        showToast("同步失敗，稍後再試", "error", 2600);
+        showToast("同步失敗，已保留待重試", "error", 2600);
+      } finally {
+        finishWriteSync();
       }
     }
 
@@ -5805,7 +6041,7 @@
           <span class="favorite-search-pill">${escapeHtml(place.category || "景點")}</span>
           <div class="favorite-search-result-actions">
             <a class="card-button outline" href="${attr(buildFavoriteSearchMapsUrl(place))}" target="_blank" rel="noreferrer">查看地點</a>
-            <button class="card-button filled" data-action="add-search-favorite" data-search-index="${attr(index)}" type="button" ${saved ? "disabled" : ""}>${saved ? "已收藏" : "加入收藏"}</button>
+            <button class="card-button filled" data-action="add-search-favorite" data-search-index="${attr(index)}" type="button" ${saved || state.writeSyncing ? "disabled" : ""}>${saved ? "已收藏" : (state.writeSyncing ? "同步中" : "加入收藏")}</button>
           </div>
         </article>
       `;
@@ -6061,7 +6297,7 @@
             </label>
             <div class="expense-edit-actions">
               <button class="secondary-btn" data-action="cancel-expense-edit" type="button">取消</button>
-              <button class="primary-btn" type="submit">儲存修改</button>
+              <button class="primary-btn" type="submit" ${writeDisabledAttr()}>${writeSubmitLabel("儲存修改")}</button>
             </div>
           </form>
         </section>
@@ -6257,7 +6493,7 @@
               <label class="form-label">備註
                 <input class="form-field" name="note" placeholder="可空白">
               </label>
-              <button class="primary-btn dark-text-btn" type="submit">加入花費</button>
+              <button class="primary-btn dark-text-btn" type="submit" ${writeDisabledAttr()}>${writeSubmitLabel("加入花費")}</button>
             </form>
           </section>
 
@@ -6476,7 +6712,7 @@
 
               <div class="form-actions">
                 <button class="secondary-btn" data-action="cancel-form" type="button">取消</button>
-                <button class="primary-btn" type="submit">${submitLabel}</button>
+                <button class="primary-btn" type="submit" ${writeDisabledAttr()}>${writeSubmitLabel(submitLabel)}</button>
               </div>
             </form>
           </section>
@@ -6517,6 +6753,9 @@
     }
 
     function goBackFromInnerScreen() {
+      let shouldRestoreScroll = false;
+      let restoreY = 0;
+
       if (state.screen === "form") {
         state.screen = state.formReturnScreen || state.previousScreen || "today";
         state.formMode = "";
@@ -6524,20 +6763,27 @@
         state.formId = "";
         state.formReturnScreen = "";
       } else if (["detail", "favorite-detail"].includes(state.screen)) {
-        const target = ["detail", "favorite-detail", "form"].includes(state.previousScreen) ? "today" : (state.previousScreen || "today");
-        state.screen = target;
+        const target = state.innerReturnScreen || state.previousScreen || "today";
+        state.screen = ["detail", "favorite-detail", "form"].includes(target) ? "today" : target;
+        restoreY = state.innerReturnScrollY || 0;
+        shouldRestoreScroll = true;
         state.selectedStopId = "";
         state.selectedFavoriteId = "";
         state.formMode = "";
         state.formType = "";
         state.formId = "";
         state.formReturnScreen = "";
+        resetInnerReturnPosition();
       } else {
         return;
       }
 
       render();
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (shouldRestoreScroll) {
+        restoreScrollPosition(restoreY);
+      } else {
+        window.scrollTo({ top: 0, behavior: "auto" });
+      }
     }
 
     function setupSwipeBack() {
@@ -6728,6 +6974,7 @@
             state.formType = "";
             state.formId = "";
             state.formReturnScreen = "";
+            resetInnerReturnPosition();
             if (state.screen === "search") state.searchDraft = state.query;
             render();
             window.scrollTo({ top: 0, behavior: "smooth" });
@@ -6844,6 +7091,7 @@
         if (action === "add-search-favorite") {
           element.addEventListener("click", () => {
             if (!requireEditMode()) return;
+            if (guardWriteAction()) return;
             const index = Number(element.dataset.searchIndex || -1);
             const place = state.favoriteSearchResults[index];
             if (!place) return;
@@ -6885,24 +7133,26 @@
         if (action === "open-stop") {
           element.addEventListener("click", () => {
             if (Date.now() < Number(state.longPressIgnoreClickUntil || 0)) return;
+            rememberInnerReturnPosition();
             state.previousScreen = state.screen === "detail" ? state.previousScreen : state.screen;
             state.selectedStopId = element.dataset.stopId || "";
             state.selectedFavoriteId = "";
             state.screen = "detail";
             render();
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            window.scrollTo({ top: 0, behavior: "auto" });
           });
         }
 
         if (action === "open-favorite") {
           element.addEventListener("click", () => {
             if (Date.now() < Number(state.longPressIgnoreClickUntil || 0)) return;
+            rememberInnerReturnPosition();
             state.previousScreen = state.screen === "favorite-detail" ? state.previousScreen : state.screen;
             state.selectedFavoriteId = element.dataset.favoriteId || "";
             state.selectedStopId = "";
             state.screen = "favorite-detail";
             render();
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            window.scrollTo({ top: 0, behavior: "auto" });
           });
         }
 
@@ -6959,6 +7209,7 @@
         if (action === "quick-delete-favorite") {
           element.addEventListener("click", () => {
             if (!requireEditMode()) return;
+            if (guardWriteAction()) return;
             const place = findFavoriteById(element.dataset.favoriteId || state.quickFavoriteActionId);
             if (!place) return;
             const ok = confirm(`確定要刪除這筆收藏？\n\n${place.title}\n\n刪除後無法復原。`);
@@ -7001,6 +7252,7 @@
 
         if (action === "quick-delete-expense") {
           element.addEventListener("click", () => {
+            if (guardWriteAction()) return;
             const id = element.dataset.expenseId || state.quickExpenseActionId || "";
             const item = state.expenses.find((expense) => expense.id === id);
             if (!item) return;
@@ -7011,7 +7263,6 @@
             state.expenses = state.expenses.filter((expense) => expense.id !== id);
             saveExpenses();
             syncExpenseChanges([{ action: "delete", item }], "已刪除");
-            showToast("已刪除");
             render();
           });
         }
@@ -7056,6 +7307,7 @@
         if (action === "quick-delete-stop") {
           element.addEventListener("click", () => {
             if (!requireEditMode()) return;
+            if (guardWriteAction()) return;
             const stop = findStopById(element.dataset.stopId || state.quickStopActionId);
             if (!stop) return;
             const ok = confirm(`確定要刪除這筆行程？\n\n${stop.date || ""} ${stop.time || ""}\n${stop.title}\n\n刪除後無法復原。`);
@@ -7103,6 +7355,7 @@
         if (action === "delete-itinerary") {
           element.addEventListener("click", () => {
             if (!requireEditMode()) return;
+            if (guardWriteAction()) return;
             const stop = findStopById(element.dataset.stopId || state.selectedStopId);
             if (!stop) return;
             const ok = confirm(`確定要刪除這筆行程？\n\n${stop.date || ""} ${stop.time || ""}\n${stop.title}\n\n刪除後無法復原。`);
@@ -7114,6 +7367,7 @@
         if (action === "delete-favorite") {
           element.addEventListener("click", () => {
             if (!requireEditMode()) return;
+            if (guardWriteAction()) return;
             const place = findFavoriteById(element.dataset.favoriteId || state.selectedFavoriteId);
             if (!place) return;
             const ok = confirm(`確定要刪除這筆收藏？\n\n${place.title}\n\n刪除後無法復原。`);
@@ -7138,6 +7392,7 @@
           element.addEventListener("submit", (event) => {
             event.preventDefault();
             if (!requireEditMode()) return;
+            if (guardWriteAction()) return;
             const form = event.currentTarget;
             const data = Object.fromEntries(new FormData(form).entries());
             const payload = {
@@ -7307,6 +7562,7 @@
         if (action === "save-expense-edit") {
           element.addEventListener("submit", (event) => {
             event.preventDefault();
+            if (guardWriteAction()) return;
             const formData = new FormData(event.currentTarget);
             const data = Object.fromEntries(formData.entries());
             const amount = normalizeMoneyAmount(data.amount);
@@ -7337,7 +7593,6 @@
                 { action: "delete", items: oldGroupItems },
                 { action: "create", items: newGroupItems }
               ], "已同步");
-              showToast("已更新");
             } else {
               const owner = normalizePayerName(data.owner || item.owner || item.payer);
               const paidBy = normalizePayerName(data.paidBy || item.paidBy || item.payer);
@@ -7361,7 +7616,6 @@
                 return updatedExpense;
               });
               if (updatedExpense) syncExpenseChanges([{ action: "update", item: updatedExpense }], "已同步");
-              showToast("已更新");
             }
 
             state.expenseEditingId = "";
@@ -7375,6 +7629,7 @@
         if (action === "add-expense") {
           element.addEventListener("submit", (event) => {
             event.preventDefault();
+            if (guardWriteAction()) return;
             const formData = new FormData(event.currentTarget);
             const data = Object.fromEntries(formData.entries());
             const amount = normalizeMoneyAmount(data.amount);
@@ -7394,13 +7649,13 @@
             state.expenses = [...newExpenses, ...state.expenses];
             saveExpenses();
             syncExpenseChanges([{ action: "create", items: newExpenses }], "已同步");
-            showToast("已新增");
             render();
           });
         }
 
         if (action === "delete-expense") {
           element.addEventListener("click", () => {
+            if (guardWriteAction()) return;
             const id = element.dataset.expenseId || "";
             const item = state.expenses.find((expense) => expense.id === id);
             if (!item) return;
@@ -7410,7 +7665,6 @@
             state.expenses = state.expenses.filter((expense) => expense.id !== id);
             saveExpenses();
             syncExpenseChanges([{ action: "delete", item }], "已刪除");
-            showToast("已刪除");
             render();
           });
         }
