@@ -3680,6 +3680,30 @@
       font-size: 16px !important;
     }
 
+  
+    /* v3 fix：保留 iPhone 防放大，但不要把花費金額輸入框縮小 */
+    input:not(.visual-amount-input),
+    select,
+    textarea,
+    .field,
+    .form-field,
+    .form-select,
+    .form-textarea,
+    .favorite-search-form .field {
+      font-size: 16px !important;
+    }
+
+    .visual-amount-input {
+      font-size: 48px !important;
+      line-height: 1.04 !important;
+    }
+
+    @media (max-width: 390px) {
+      .visual-amount-input {
+        font-size: 42px !important;
+      }
+    }
+
   </style>
 </head>
 
@@ -3696,6 +3720,7 @@
     const WRITE_PASSCODE_SESSION_KEY = "trip-html:write-passcode-v2";
     const PENDING_WRITES_STORAGE_KEY = "trip-html:pending-writes-v1";
     const EXPENSE_SHEET_NAME = "expenses";
+    const JSONP_TIMEOUT_MS = 16000;
     const WRITE_CORS_FALLBACK_TO_NO_CORS = true;
     const EDIT_MODE_KEY = "trip-html:edit-mode-v1";
     const EXPENSE_STORAGE_KEY = "trip-html:expenses-v1";
@@ -5313,6 +5338,56 @@
       }
     }
 
+
+    function jsonpRequest(url, timeoutMs = JSONP_TIMEOUT_MS) {
+      return new Promise((resolve, reject) => {
+        const callbackName = `__tripJsonp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        const separator = url.includes("?") ? "&" : "?";
+        const script = document.createElement("script");
+        let settled = false;
+
+        const cleanup = () => {
+          try { delete window[callbackName]; } catch (error) { window[callbackName] = undefined; }
+          if (script.parentNode) script.parentNode.removeChild(script);
+        };
+
+        const timer = window.setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          reject(new Error("JSONP timeout"));
+        }, timeoutMs);
+
+        window[callbackName] = (data) => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          cleanup();
+          resolve(data);
+        };
+
+        script.onerror = () => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          cleanup();
+          reject(new Error("JSONP load failed"));
+        };
+
+        script.src = `${url}${separator}callback=${encodeURIComponent(callbackName)}`;
+        document.head.appendChild(script);
+      });
+    }
+
+    function webAppUrl(params = {}) {
+      const url = new URL(WRITE_WEB_APP_URL, window.location.href);
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === "") return;
+        url.searchParams.set(key, String(value));
+      });
+      return url.toString();
+    }
+
     async function postWritePayload(payload, options = {}) {
       if (!isWriteReady()) {
         throw new Error("write url missing");
@@ -5331,45 +5406,26 @@
         clientUpdatedAt: new Date().toISOString()
       };
 
+      const url = webAppUrl({
+        action: "write",
+        payload: JSON.stringify(safePayload),
+        _: Date.now()
+      });
+
       try {
-        const response = await fetch(WRITE_WEB_APP_URL, {
-          method: "POST",
-          mode: "cors",
-          redirect: "follow",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(safePayload)
-        });
+        const responseData = await jsonpRequest(url);
 
-        const responseText = await response.text();
-        const responseData = parseWriteResponseText(responseText);
-
-        if (!response.ok || responseData.ok === false) {
-          const message = responseData.error || responseData.message || `HTTP ${response.status}`;
+        if (!responseData || responseData.ok === false) {
+          const message = (responseData && (responseData.error || responseData.message)) || "同步失敗";
+          enqueuePendingWrite(safePayload, message);
           throw new Error(message);
         }
 
         removePendingWrite(requestId);
         return { ok: true, confirmed: true, requestId, data: responseData };
       } catch (error) {
-        if (!WRITE_CORS_FALLBACK_TO_NO_CORS) {
-          enqueuePendingWrite(safePayload, error.message || "cors failed");
-          throw error;
-        }
-
-        try {
-          await fetch(WRITE_WEB_APP_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify(safePayload)
-          });
-
-          enqueuePendingWrite(safePayload, error.message || "fallback no-cors");
-          return { ok: true, confirmed: false, requestId, error };
-        } catch (fallbackError) {
-          enqueuePendingWrite(safePayload, fallbackError.message || "fallback failed");
-          throw fallbackError;
-        }
+        enqueuePendingWrite(safePayload, error.message || "jsonp failed");
+        throw error;
       }
     }
 
@@ -7887,20 +7943,20 @@
         throw new Error("尚未設定 Apps Script 讀取網址");
       }
 
-      const separator = WRITE_WEB_APP_URL.includes("?") ? "&" : "?";
-      const cacheBust = force ? `&_=${Date.now()}` : "";
-      const url = `${WRITE_WEB_APP_URL}${separator}action=rows${cacheBust}`;
-      const response = await fetch(url, { cache: "no-store", signal });
-
-      if (!response.ok) {
-        throw new Error("Apps Script 資料讀取失敗");
+      if (signal && signal.aborted) {
+        throw new Error("讀取已取消");
       }
 
-      const data = await response.json();
+      const url = webAppUrl({
+        action: "rows",
+        _: force ? Date.now() : ""
+      });
+
+      const data = await jsonpRequest(url, JSONP_TIMEOUT_MS);
       const rows = Array.isArray(data) ? data : data.rows;
 
       if (!data || data.ok === false || !Array.isArray(rows)) {
-        throw new Error(data && data.error ? String(data.error) : "Apps Script 回傳格式不正確");
+        throw new Error(data && (data.error || data.message) ? String(data.error || data.message) : "Apps Script 回傳格式不正確");
       }
 
       return rows.map(normalizeRow).filter(isVisible);
