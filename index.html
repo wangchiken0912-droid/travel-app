@@ -4869,9 +4869,22 @@
       return `提醒：這筆行程跟 ${conflict.time || "未設定時間"}「${conflict.title}」距離少於 30 分鐘，建議確認移動時間是否足夠`;
     }
 
+
+    function getEventElement(event) {
+      const target = event && event.target;
+      if (!target) return null;
+      if (target.nodeType === 1) return target;
+      return target.parentElement || null;
+    }
+
+    function eventTargetClosest(event, selector) {
+      const target = getEventElement(event);
+      return target && typeof target.closest === "function" ? target.closest(selector) : null;
+    }
+
     function searchImeLocked(event) {
       if (state.screen !== "search") return false;
-      if (event?.target?.closest?.("[data-action='search-input']")) return false;
+      if (eventTargetClosest(event, "[data-action='search-input']")) return false;
       return state.searchComposing || Date.now() < state.searchImeTapBlockUntil;
     }
 
@@ -7007,13 +7020,15 @@
       if (state.screen === "favorite-detail") html = favoritePlaceDetailPageHtml();
       if (state.screen === "form") html = formPageHtml();
 
-      app.innerHTML = html + quickStopActionSheetHtml() + quickFavoriteActionSheetHtml() + quickExpenseActionSheetHtml() + toastHtml() + (["detail", "favorite-detail", "form"].includes(state.screen) ? "" : bottomNavHtml());
+app.innerHTML = html + quickStopActionSheetHtml() + quickFavoriteActionSheetHtml() + quickExpenseActionSheetHtml() + toastHtml() + (["detail", "favorite-detail", "form"].includes(state.screen) ? "" : bottomNavHtml());
       syncActionSheetScrollLock();
       bindEvents();
       bindExpenseSplitPayerControls();
       setupSwipeBack();
       scheduleMessageClear();
+      
     }
+
 
     function bindEvents() {
       document.removeEventListener("pointerdown", handleMoneySettingsOutsidePointerDown, true);
@@ -7061,8 +7076,18 @@
 
         if (action === "select-date") {
           element.addEventListener("click", () => {
+            const rail = element.closest(".date-rail");
+            const keepScrollLeft = rail ? rail.scrollLeft : 0;
+
             state.selectedDate = element.dataset.date;
             render();
+
+            requestAnimationFrame(() => {
+              const newRail = app.querySelector(".date-rail");
+              if (newRail) {
+                newRail.scrollLeft = keepScrollLeft;
+              }
+            });
           });
         }
 
@@ -7812,7 +7837,7 @@
 
           const start = (event) => {
             if (hasOpenActionSheet()) return;
-            if (event.target.closest("button, a, input, select, textarea, label")) return;
+            if (eventTargetClosest(event, "button, a, input, select, textarea, label")) return;
             if (event.pointerType === "mouse" && event.button !== 0) return;
 
             const point = getPoint(event);
@@ -7902,7 +7927,7 @@
         const blockFreshActionSheetInteraction = (event) => {
           if (!hasOpenActionSheet()) return;
           if (Date.now() >= Number(state.actionSheetBlockTapUntil || 0)) return;
-          if (!event.target.closest(".action-sheet-backdrop")) return;
+          if (!eventTargetClosest(event, ".action-sheet-backdrop")) return;
           event.preventDefault();
           event.stopPropagation();
           if (event.stopImmediatePropagation) event.stopImmediatePropagation();
@@ -7917,15 +7942,15 @@
         window.__bloomSelectionGuardInstalled = true;
 
         document.addEventListener("contextmenu", (event) => {
-          if (event.target.closest(".detail-hero, .detail-body")) return;
-          if (event.target.closest(".action-sheet, [data-longpress-stop-id], [data-longpress-favorite-id], [data-longpress-expense-id]")) {
+          if (eventTargetClosest(event, ".detail-hero, .detail-body")) return;
+          if (eventTargetClosest(event, ".action-sheet, [data-longpress-stop-id], [data-longpress-favorite-id], [data-longpress-expense-id]")) {
             event.preventDefault();
           }
         });
 
         document.addEventListener("selectstart", (event) => {
-          if (event.target.closest(".detail-hero, .detail-body")) return;
-          if (event.target.closest(".action-sheet, [data-longpress-stop-id], [data-longpress-favorite-id], [data-longpress-expense-id]")) {
+          if (eventTargetClosest(event, ".detail-hero, .detail-body")) return;
+          if (eventTargetClosest(event, ".action-sheet, [data-longpress-stop-id], [data-longpress-favorite-id], [data-longpress-expense-id]")) {
             event.preventDefault();
           }
         });
@@ -8027,7 +8052,7 @@
 
     document.addEventListener("touchmove", (event) => {
       if (!document.body.classList.contains("action-sheet-open")) return;
-      if (!event.target.closest(".action-sheet")) {
+      if (!eventTargetClosest(event, ".action-sheet")) {
         event.preventDefault();
       }
     }, { passive: false });
